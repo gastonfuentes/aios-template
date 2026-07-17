@@ -1,0 +1,48 @@
+{
+  "skill_name": "pwa-mobile",
+  "evals": [
+    {
+      "id": 1,
+      "name": "hacer instalable la app",
+      "prompt": "Quiero que mi app se instale en el teléfono como una app nativa.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'instalable en teléfono'",
+        "Genera public/manifest.json con name, short_name, theme_color, icons array",
+        "Genera public/sw.js con cache strategy 'network-first' por default",
+        "Registra el service worker desde src/app/layout.tsx via use client",
+        "Verifica que el manifest pasa Lighthouse PWA checklist",
+        "Anuncia al operador cómo probar el install banner en Chrome desktop + mobile"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "notificaciones push cross-platform",
+      "prompt": "Necesito enviar notificaciones push a mis usuarios cuando publico algo nuevo.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'notificaciones push'",
+        "Genera VAPID keys via npx web-push generate-vapid-keys",
+        "Guarda VAPID_PUBLIC + VAPID_PRIVATE en .env (sin commit)",
+        "Cablea handler /api/notifications/subscribe que guarda suscripción en profiles.push_subscription",
+        "Cablea /api/notifications/send con body Zod-validated y bearer-protected",
+        "Agrega permission prompt en frontend (botón 'Activar notificaciones')",
+        "Documenta limitación iOS 16.4+ requiere PWA instalada para push"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ya hay PWA pero falta push",
+      "prompt": "Mi app ya es PWA pero quiero agregar las notificaciones push solamente.",
+      "files": ["public/manifest.json", "public/sw.js"],
+      "expected_behavior": [
+        "Detecta que manifest + sw.js ya existen",
+        "NO regenera manifest ni sw.js",
+        "Solo agrega push handler al sw.js existente",
+        "Genera VAPID + handlers subscribe/send",
+        "Verifica que el manifest existing tenga 'gcm_sender_id' o equivalente moderno",
+        "Anuncia qué se agregó respetando lo existente"
+      ]
+    }
+  ]
+}

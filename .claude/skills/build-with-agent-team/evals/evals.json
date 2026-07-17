@@ -1,0 +1,44 @@
+{
+  "skill_name": "build-with-agent-team",
+  "evals": [
+    {
+      "id": 1,
+      "name": "agentic team desde brief master multi-fase",
+      "prompt": "Orquesta un equipo de agentes para construir el brief master que aprobé.",
+      "files": ["BRIEF-MASTER-saas-reservas-dentales.md"],
+      "expected_behavior": [
+        "Lee el brief master y mapea las fases independientes vs secuenciales",
+        "Diseña roles para los agentes (frontend, backend, auth, infra) según las skills disponibles",
+        "Usa TeamCreate para spawnear los agentes con cwd compartido",
+        "Asigna cada sub-fase del PRP al agente correspondiente con prompt autónomo",
+        "Sincroniza checkpoints vía SendMessage cuando un agente termina su sub-fase",
+        "Agrega entregas — el agente Jefe valida que las superficies se integran antes de cerrar"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "dividir trabajo en paralelo dentro de un PRP",
+      "prompt": "Este PRP tiene 4 fases independientes, divídelo en agentes paralelos.",
+      "files": [".claude/PRPs/PRP-XXX.md"],
+      "expected_behavior": [
+        "Identifica que las 4 fases del PRP son ortogonales (no dependen una de otra)",
+        "Crea un agente por fase usando TeamCreate",
+        "Cada agente recibe contexto mínimo: la fase asignada + el PRP completo como referencia",
+        "El jefe (agente principal) espera completion de los 4 antes de Fase 5 final",
+        "Maneja fallos parciales — si un agente falla, el jefe re-asigna o escala c2"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "single agente para fase no paralelizable",
+      "prompt": "Construye esta feature con un solo agente porque las fases son secuenciales.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta que las fases son secuenciales (cada una depende de la anterior)",
+        "Decide NO usar agentic team — usa bucle-agentico tradicional",
+        "Anuncia al operador la decisión: 'No tiene sentido paralelizar porque…'",
+        "Procede con bucle-agentico mono-agente"
+      ]
+    }
+  ]
+}

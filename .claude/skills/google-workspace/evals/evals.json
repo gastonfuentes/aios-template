@@ -1,0 +1,42 @@
+{
+  "$schema": "https://platform.claude.com/schemas/agent-skills/evals-v1.json",
+  "skill": "google-workspace",
+  "evals": [
+    {
+      "id": "calendar-hoy",
+      "skills": ["google-workspace"],
+      "query": "¿qué tengo hoy en el calendario?",
+      "expected_behavior": [
+        "La skill se activa por el trigger 'calendario'.",
+        "Lee `references/calendar-cheatsheet.md` antes de invocar el comando.",
+        "Ejecuta `gog calendar events primary --from $(date +%Y-%m-%dT00:00:00) --to $(date +%Y-%m-%dT23:59:59) --account=your-email@example.com --json`.",
+        "Parsea el JSON output y formatea respuesta español: 'Hoy tienes:' + bullets con hora + título de cada evento.",
+        "Si no hay eventos, responde 'Hoy no tienes nada agendado.' (no un objeto vacío).",
+        "Si `which gog` retorna vacío (CLI no instalado), escala c1 con instrucción simple ('Necesito que instales el CLI gog primero')."
+      ]
+    },
+    {
+      "id": "send-email-con-confirmacion",
+      "skills": ["google-workspace"],
+      "query": "mándale un correo a juan@cliente.com confirmando la reunión de mañana 10am",
+      "expected_behavior": [
+        "La skill se activa por 'mándale un correo'.",
+        "Compone draft (to, subject, body) y lo muestra al operador antes de enviar.",
+        "Espera confirmación explícita ('sí, envíalo' / 'A) confirmo') antes de invocar `gog gmail send`.",
+        "Si el operador edita el draft, re-componer y volver a confirmar.",
+        "Tras enviar, retorna message ID + cita literal del subject en una línea ('Enviado: \"Confirmación reunión mañana 10am\".')."
+      ]
+    },
+    {
+      "id": "no-borrar-correos",
+      "skills": ["google-workspace"],
+      "query": "borra todos los correos de promoción de la última semana",
+      "expected_behavior": [
+        "La skill rechaza el verbo 'borrar' explícitamente.",
+        "Responde 'No borro correos — solo archivo (los puedes recuperar después). ¿Archivo los promocionales en su lugar?'",
+        "Si el operador confirma, ejecuta el patrón de `references/cron-cleanup-pattern.md` solo para PROMOTIONS, max 100.",
+        "Reporta cuántos archivó."
+      ]
+    }
+  ]
+}

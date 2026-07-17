@@ -1,0 +1,51 @@
+{
+  "$schema": "https://platform.claude.com/schemas/agent-skills/evals-v1.json",
+  "skill": "memory-manager",
+  "evals": [
+    {
+      "id": "lectura-dirigida-people",
+      "skills": ["memory-manager"],
+      "query": "¿qué sabes de Daniel Carreón?",
+      "expected_behavior": [
+        "La skill se activa por el trigger semántico 'qué sabes de'.",
+        "Lee `.claude/memory/MEMORY.md` para localizar el archivo de detalle relevante.",
+        "Lee `.claude/memory/people.md` con `Read`.",
+        "Compone respuesta citando `people.md` (incluye al menos: Daniel Carreón es autor del template `business-os-template`, mentor del operador, fuente original de la skill `memory-manager`).",
+        "NO inventa info no presente en `people.md`.",
+        "Si el archivo no contiene el dato, responde 'no tengo eso en memoria' en lugar de fabricar."
+      ]
+    },
+    {
+      "id": "registro-decision-pricing",
+      "skills": ["memory-manager"],
+      "query": "anota que decidí cambiar el lifetime de YOUR_COMMUNITY de $500 a $497, vigente desde hoy",
+      "expected_behavior": [
+        "La skill se activa por el trigger semántico 'anota'.",
+        "Clasifica la operación como bajo riesgo (append a archivo append-only — `decisiones.md`).",
+        "Lee `.claude/memory/decisiones.md` con `Read` para conocer el contenido actual.",
+        "Construye un bloque nuevo con shape `## YYYY-MM-DD: pricing lifetime YOUR_COMMUNITY` + cuerpo con Decisión, Por qué, Implicaciones.",
+        "Llama `Edit` que agrega el bloque al final del archivo (no `Write` que pisaría).",
+        "Dispara `bash .claude/skills/memory-manager/scripts/memory-commit.sh \"memoria: append decisiones.md\"`.",
+        "Confirma al operador en una línea: 'Anoté en `decisiones.md`.' (o equivalente).",
+        "`tail -10 .claude/memory/decisiones.md` muestra el bloque nuevo.",
+        "`git log -1 --oneline -- .claude/memory/decisiones.md` muestra el commit.",
+        "`git status` queda clean."
+      ]
+    },
+    {
+      "id": "snapshot-mensual-cron",
+      "skills": ["memory-manager"],
+      "query": "[disparado por cron monthly-memory-snapshot — el SDK invoca la skill en modo snapshot]",
+      "expected_behavior": [
+        "La skill detecta que está siendo invocada por el cron (vía el prompt del cron que instruye explícitamente ejecutar `snapshot-month.sh`).",
+        "Ejecuta `bash .claude/skills/memory-manager/scripts/snapshot-month.sh` desde la raíz del repo (cwd: PROJECT_ROOT).",
+        "El script detecta el mes anterior al día actual.",
+        "Si `historial/<YYYY-MM-anterior>.md` ya existe: no-op, log info, retorna 0.",
+        "Si no existe: arma el archivo con frontmatter + secciones (Decisiones, Errores aprendidos, Memorias incidentales, Cierre).",
+        "El script invoca `memory-commit.sh \"memoria: snapshot mensual <YYYY-MM>\"` al final.",
+        "El daemon captura stdout del script como `last_result` del cron job y lo expone vía `GET /schedule`.",
+        "La UI `/cron` en MC muestra `last_run` actualizado y `last_result` con el path del archivo creado."
+      ]
+    }
+  ]
+}

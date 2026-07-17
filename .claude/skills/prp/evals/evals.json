@@ -1,0 +1,53 @@
+{
+  "skill_name": "prp",
+  "evals": [
+    {
+      "id": 1,
+      "name": "PRP from brief — covers all phases",
+      "prompt": "Genera el PRP de @docs/BRIEF-saas-reservas-dentales.md",
+      "files": ["docs/BRIEF-saas-reservas-dentales.md"],
+      "expected_behavior": [
+        "Paso 0 lee el brief completo y recorre su ## Alcance por Fases",
+        "Genera UN solo PRP que cubre TODAS las fases del brief como sus fases de implementacion (### Fase 1..N en ## Plan de implementacion)",
+        "Hereda integro del brief: TL;DR, Directiva de Stack, Supuestos, Fuera de Alcance",
+        "Concatena en Aprendizajes heredados los aprendizajes que el brief ya traiga, si los hay",
+        "Investiga el codebase actual con Read/Grep/Glob antes de proponer arquitectura",
+        "Genera PRP-{numero}-{feature-kebab}.md con numero asignado correctamente (max(ls .claude/PRPs/) + max(grep PRP- CLAUDE.md) + 1)",
+        "El PRP queda en estado PENDIENTE",
+        "El cuerpo del PRP cumple las secciones del template prp-base.md (Origen, Objetivo, Por Que, Que, Contexto, Directiva heredada, Supuestos heredados, Fuera de Alcance heredado, Aprendizajes heredados, Plan, Aprendizajes vacia, Anti-patrones)",
+        "Voz: primera persona en Origen + Objetivo + Por Que; impersonal en el resto",
+        "NUNCA implementa codigo — solo genera el documento",
+        "Al aprobar, las fases del Alcance por Fases del brief apuntan a este PRP"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "PRP from a one-phase brief",
+      "prompt": "Genera el PRP para @docs/BRIEF-widget-horario-atencion.md",
+      "files": ["docs/BRIEF-widget-horario-atencion.md"],
+      "expected_behavior": [
+        "Paso 0 lee el brief de una sola fase y genera UN PRP que la cubre",
+        "Hereda Directiva de deltas (KEEP/ADD/CONFIG, sin REPLACE/REMOVE explicitos)",
+        "Investiga el codebase para encontrar puntos de integracion existentes (ej. Header.tsx)",
+        "El ## Plan de implementacion tiene fases acotadas porque el brief ya delimita el scope",
+        "Trust Stack solo se incluye si compatibilidad MATCH/EXTEND; en otro caso se omite",
+        "Comandos de validacion final derivan del tipo del proyecto del brief origen"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "PRP without brief — direct planning flow",
+      "prompt": "Necesito agregar autenticacion con Google OAuth a mi app. Planifica esto.",
+      "files": [],
+      "expected_behavior": [
+        "Paso 0 detecta que NO hay brief en $ARGUMENTS ni en docs/ del proyecto",
+        "Investiga primero el workspace (BUSINESS_LOGIC.md, README.md, CLAUDE.md, package.json, git log) antes de preguntar nada",
+        "Si tras investigar quedan dudas criticas, hace UNA SOLA batch de 1-3 preguntas en lenguaje cotidiano (voz Juan Lara, sin jerga tecnica)",
+        "Las preguntas son cosas como '¿Que quieres que haga esta funcion cuando este lista?' — NUNCA 'Criterios de exito medibles' o 'Restricciones tecnicas'",
+        "Aplica Trust Stack default Praxis automaticamente y anuncia la decision en el PRP generado",
+        "Marca explicitamente las secciones heredadas como 'No hay brief origen — planificacion directa'",
+        "Genera UN PRP con su ## Plan de implementacion por fases; al aprobar, como no hay brief origen, omite el update del brief"
+      ]
+    }
+  ]
+}

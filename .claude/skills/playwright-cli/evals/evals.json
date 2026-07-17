@@ -1,0 +1,49 @@
+{
+  "skill_name": "playwright-cli",
+  "evals": [
+    {
+      "id": 1,
+      "name": "verificar signup flow",
+      "prompt": "Verifícame que el signup ande, que el magic-link llegue y se pueda hacer login.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'verificar signup' sin preguntar por framework de testing",
+        "Activa playwright via CLI (no abre UI)",
+        "Navega a /login + llena email + click submit",
+        "Verifica que aparece la pantalla 'check your email'",
+        "Toma screenshot de cada step",
+        "Genera reporte HTML auto-servido en localhost",
+        "Anuncia URL del reporte al operador"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "regresión visual de landing",
+      "prompt": "Hay un bug visual en la landing, revisa que se ve igual que ayer.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'regresión visual'",
+        "Toma screenshot actual de la landing",
+        "Si existe baseline en references/baselines/, hace diff visual",
+        "Si no existe, lo crea y anuncia que es la primera ejecución",
+        "Reporta píxeles cambiados + área afectada",
+        "Anuncia veredicto: 'sin regresión' o 'regresión en zona X'"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "validar checkout end-to-end",
+      "prompt": "Quiero que checkees que el checkout de Polar funciona end-to-end.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'checkout' + 'end-to-end'",
+        "Navega a /pricing + click en el plan",
+        "Verifica redirect a Polar checkout (URL externa)",
+        "Si está en test mode: completa el form con tarjeta de prueba",
+        "Verifica el redirect post-checkout a /success",
+        "Toma screenshots de los 4 estados clave",
+        "Reporta verde/rojo con detalles"
+      ]
+    }
+  ]
+}

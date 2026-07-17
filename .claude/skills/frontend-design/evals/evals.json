@@ -1,0 +1,47 @@
+{
+  "skill_name": "frontend-design",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dashboard premium con shadcn",
+      "prompt": "Hazme un dashboard que se vea premium para mostrar mis métricas.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'dashboard premium' sin preguntar por estilo",
+        "Activa Trust Stack visual: Tailwind 4 + shadcn/ui primitives + paleta OKLCH dark-default",
+        "Genera la página con jerarquía visual: hero KPI > grid de tarjetas > tabla detalle",
+        "Usa primitives existentes de src/core/ui/ (Card, Badge, Separator) sin re-instalar",
+        "Agrega microinteracciones sutiles (fade-in con tw-animate-css)",
+        "Verifica tsc --noEmit y npm run lint limpios antes de cerrar"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "landing minimalista nueva",
+      "prompt": "Quiero una landing minimalista para mi producto X, que la tipografía sea elegante.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'landing minimalista' + 'tipografía elegante'",
+        "Activa Inter + JetBrains_Mono via next/font/google (sin agregar fonts externas)",
+        "Genera la página con secciones: hero, problem-solution, features grid, CTA",
+        "Aplica spacing generoso (py-24 entre secciones) + tracking-tight en headings",
+        "Usa Button shadcn como CTA con variant outline o default",
+        "Valida visualmente con playwright-cli screenshot antes de cerrar"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "refactor visual de componente existente",
+      "prompt": "Esta página se ve recargada, refactor visual para que se vea más limpia.",
+      "files": ["src/app/(app)/page.tsx"],
+      "expected_behavior": [
+        "Lee el archivo existente y mapea qué primitives ya usa",
+        "Identifica anti-patrones: bordes innecesarios, sombras pesadas, contraste excesivo",
+        "Reduce a paleta OKLCH dark con foreground/background/muted",
+        "Reemplaza divs sueltos con primitives Card cuando agrupan info",
+        "Conserva toda la lógica de negocio — refactor es solo visual",
+        "Anuncia al operador qué cambió y por qué quedó más limpio"
+      ]
+    }
+  ]
+}

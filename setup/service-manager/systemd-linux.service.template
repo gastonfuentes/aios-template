@@ -1,0 +1,26 @@
+[Unit]
+Description={{AGENT_NAME}} AIOS agent-server daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={{PROJECT_ROOT}}/agent-server
+ExecStart=/usr/bin/node {{PROJECT_ROOT}}/agent-server/dist/index.js
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="NODE_ENV=production"
+Environment="TZ={{TIMEZONE}}"
+
+StandardOutput=append:%h/.local/share/{{AGENT_NAME_LOWERCASE}}/daemon.log
+StandardError=append:%h/.local/share/{{AGENT_NAME_LOWERCASE}}/daemon.err.log
+
+# Resource limits (ajustable según VPS tier)
+LimitNOFILE=4096
+MemoryMax=1G
+
+[Install]
+WantedBy=default.target

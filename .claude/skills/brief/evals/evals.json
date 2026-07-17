@@ -1,0 +1,53 @@
+{
+  "skill_name": "brief",
+  "evals": [
+    {
+      "id": 1,
+      "name": "proyecto amplio — full SaaS product",
+      "prompt": "Quiero construir un SaaS de reservas para clinicas dentales. Necesito auth multi-tenant, agenda online, recordatorios por email y WhatsApp, pagos online, y panel para el odontologo.",
+      "files": [],
+      "expected_behavior": [
+        "Decide profundidad amplia (producto completo nuevo, multiples capacidades coordinadas): el Alcance por Fases tendra varias fases",
+        "Anuncia la decision en una linea sin preguntar al usuario por ningun modo",
+        "Clasifica como tipo web-saas con compatibilidad MATCH contra Praxis",
+        "Carga unicamente stacks/web-saas.md y playbooks/web-saas.md (carga perezosa, no los 30 stacks)",
+        "Ejecuta minimo 3 busquedas web del playbook antes de redactar",
+        "Genera BRIEF-{tema-kebab}.md en la raiz del proyecto (sin prefijo MASTER, nunca)",
+        "El brief incluye TL;DR, Mi Vision, Contexto e Investigacion, Directiva de Stack completa (KEEP/ADD/REPLACE/REMOVE/CONFIG), Alcance por Fases con 9 campos por fase, Supuestos, Fuera de Alcance, Evaluacion, Fuentes Consultadas",
+        "El brief esta redactado en primera persona del usuario (Quiero..., He decidido...)",
+        "Al guardar, anuncia que un solo PRP cubrira todas las fases del brief (presiona +PRP una vez)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "feature acotada — feature in existing project",
+      "prompt": "Quiero agregar un widget de horario de atencion en el header de la clinica. Que se vea abierto/cerrado en tiempo real.",
+      "files": [],
+      "expected_behavior": [
+        "Decide profundidad acotada (feature dentro de un alcance ya definido): el Alcance por Fases tendra una sola fase",
+        "Anuncia la decision citando que el workspace muestra src/features/ existente",
+        "Clasifica el contexto del proyecto pero la feature en si no requiere re-clasificacion del tipo",
+        "Investigacion web minima (1-2 busquedas) — el contexto del proyecto ya cubre la mayoria",
+        "Genera BRIEF-{tema-kebab}.md en la raiz (mismo formato que un brief amplio, solo con menos fases)",
+        "El brief es mas conciso pero conserva la estructura: TL;DR, Mi Vision, Contexto, Directiva de Stack, Alcance por Fases con una fase, Supuestos, Fuera de Alcance, Fuentes",
+        "Al guardar, anuncia que un solo PRP cubrira la unica fase del brief"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ambiguous → custom-unknown fallback",
+      "prompt": "Quiero hacer una herramienta que analice los pulsos de mi smartwatch y genere recomendaciones de meditacion personalizadas con un agente que aprende de mis patrones de sueno.",
+      "files": [],
+      "expected_behavior": [
+        "Decide profundidad amplia (producto completo nuevo)",
+        "Razona sobre el catalogo de tipos y descubre que ningun tipo describe bien la idea (cruza ai-agent + mobile + wearables + health)",
+        "Clasifica como custom-unknown y lo anuncia: 'Lo clasifique como custom-unknown porque <razon>'",
+        "Activa modo de investigacion libre del playbook custom-unknown (minimo 5 busquedas, no 3)",
+        "Investiga: 'que es esto exactamente', '2-3 proyectos OSS o articulos similares', 'stack dominante del nicho', 'diferenciador tecnico', 'toolchain externo requerido'",
+        "Identifica 1-2 stacks candidatos en el brief con razonamiento documentado",
+        "La Directiva de Stack queda explicita aunque sea ad-hoc — un PRP debe poder ejecutarla",
+        "Si tras 5+ busquedas no hay claridad, escala al usuario con una pregunta concreta antes de redactar (caso documentado en stacks/custom-unknown.md)"
+      ]
+    }
+  ]
+}

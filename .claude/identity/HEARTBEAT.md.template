@@ -1,0 +1,37 @@
+# HEARTBEAT.md — cron jobs activos en nombre del operador
+
+> Espejo declarativo de los cron jobs que {{AGENT_NAME}} corre 24/7. Fuente de verdad
+> operativa: `agent-server/src/scheduler.ts` (jobs `DEFAULT_TASKS`) + launchd/systemd
+> services que el alumno haya activado durante el setup.
+>
+> Zona horaria base: **`{{OPERATOR_TIMEZONE}}`**, declarada en `SCHEDULER_TZ` del scheduler
+> y en `EnvironmentVariables.TZ` de los services del OS.
+
+---
+
+## Jobs activos al primer deploy
+
+| Job | Schedule | Categoría sesión | Output esperado |
+|---|---|---|---|
+| `daily-summary-9am` | `0 9 * * *` (09:00 {{OPERATOR_TIMEZONE}}, diario) | `cron-reports` | Resumen markdown del día anterior leyendo `ops_events` últimas 24h + `tasks` con `priority ≥ 3`. Job genérico de ejemplo — el operador lo personaliza con su contexto. |
+| `nightly-memory-consolidation` (opt-in) | 03:00 {{OPERATOR_TIMEZONE}} (diario, launchd/systemd separado) | — (script nativo `tsx`) | Lee sesiones del día anterior, extrae hechos atómicos vía LLM, persiste a `{{AGENT_TABLE_PREFIX}}_memories`, aplica decay + compactación. Requiere `LLM_PROVIDER=claude-code-sdk` + `OPENAI_API_KEY` para embeddings. |
+| `weekly-backup` (opt-in) | Domingo 04:00 {{OPERATOR_TIMEZONE}} (launchd/systemd separado) | — (corre bash) | `tar` del workspace + `.claude/memory/`, retención 60 días → `~/{{AGENT_NAME}}-backups/`. |
+
+## Cómo se invocan
+
+- `daily-summary-9am` corre dentro del daemon (`agent-server/src/scheduler.ts`): poller de 60s
+  + claim race-safe + reuse de sesión SDK por semana ISO + categoría.
+- `nightly-memory-consolidation` corre vía launchd (macOS) / systemd (Linux) ejecutando
+  `agent-server/node_modules/.bin/tsx agent-server/scripts/consolidate.ts`. Service file en
+  `setup/service-manager/` con placeholders renderizados al setup.
+- `weekly-backup` corre vía launchd/systemd ejecutando `agent-server/scripts/weekly-backup.sh`.
+
+## Reglas de modificación
+
+- Cualquier cambio a un job (schedule, categoría, prompt) se hace primero en el código fuente
+  correspondiente (`scheduler.ts` o el service file). Este archivo se actualiza después, en el
+  mismo commit. Si código y este `HEARTBEAT.md` divergen, gana el código.
+- Cron jobs nuevos van con su propio PRP (skill `prp`). No se agregan a `scheduler.ts` ad-hoc.
+- El operador puede sumar cron jobs custom relevantes a su contexto (ej. snapshot diario de
+  community metrics si gestiona una comunidad Skool/Discord; pull de revenue si vende
+  productos; etc.). Ver `examples/scheduled-jobs/` para inspiración.

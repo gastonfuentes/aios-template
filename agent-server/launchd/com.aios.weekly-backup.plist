@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AIOS weekly backup — launchd agent (PRP-007).
+
+  Carga (operación c1 del operador, una sola vez):
+    cp <PROJECT_ROOT>/agent-server/launchd/com.aios.weekly-backup.plist \
+       ~/Library/LaunchAgents/com.aios.weekly-backup.plist
+    launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.aios.weekly-backup.plist
+    launchctl print gui/$UID/com.aios.weekly-backup
+
+  Forzar primer run manual:
+    launchctl kickstart -k gui/$UID/com.aios.weekly-backup
+
+  Logs:
+    ~/Library/Logs/aios/weekly-backup.{out,err}.log
+    ~/aios-backups/weekly-backup.log     (formato propio del script)
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.aios.weekly-backup</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string><PROJECT_ROOT>/agent-server/scripts/weekly-backup.sh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>0</integer>
+    <key>Hour</key>
+    <integer>4</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>TZ</key>
+    <string>America/Mexico_City</string>
+    <key>HOME</key>
+    <string><HOME></string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string><HOME>/Library/Logs/aios/weekly-backup.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string><HOME>/Library/Logs/aios/weekly-backup.err.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

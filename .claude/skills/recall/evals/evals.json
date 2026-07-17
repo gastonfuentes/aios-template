@@ -1,0 +1,60 @@
+{
+  "$schema": "https://platform.claude.com/schemas/agent-skills/evals-v1.json",
+  "skill": "recall",
+  "evals": [
+    {
+      "id": "recall-pregunta-directa-sobre-operador",
+      "skills": ["recall"],
+      "query": "¿qué café toma el operador?",
+      "expected_behavior": [
+        "La skill se activa por el trigger semántico 'qué <atributo> toma <entidad>'.",
+        "Construye la URL del endpoint /recall del daemon (https://YOUR_DAEMON_PUBLIC_URL/recall o 127.0.0.1:3099 local).",
+        "Invoca curl -s -G con --data-urlencode query='qué café toma el operador' --data-urlencode limit=5 y header Authorization: Bearer $OPENCLAW_GATEWAY_TOKEN.",
+        "Parsea la response JSON, ordena el array memories por similarity descendente (ya viene ordenado por el RPC).",
+        "Cita el content de memories[0] como respuesta principal si similarity >= 0.5.",
+        "NO inventa info no presente en memories.",
+        "NO modifica la BD desde la skill (el touch lo hace el daemon vía RPC interna)."
+      ]
+    },
+    {
+      "id": "recall-sin-resultados-degrada-graceful",
+      "skills": ["recall"],
+      "query": "¿qué sabes de mi hermana Sofía?",
+      "expected_behavior": [
+        "La skill se activa por 'qué sabes de'.",
+        "Invoca /recall con la query.",
+        "Recibe response 200 con memories=[] (tabla no tiene match relevante).",
+        "{{AGENT_NAME}} responde al operador 'no tengo memoria sobre eso, ¿quieres que la guarde?' o equivalente en voz natural.",
+        "NO inventa info sobre Sofía.",
+        "Sugiere usar Memory Tool para persistir el dato si el operador confirma."
+      ]
+    },
+    {
+      "id": "recall-fallback-cuando-daemon-503",
+      "skills": ["recall"],
+      "query": "¿en qué quedamos con el lifetime de your-community-slug?",
+      "expected_behavior": [
+        "La skill se activa por 'en qué quedamos'.",
+        "Invoca /recall con la query.",
+        "Recibe HTTP 503 'embeddings provider not configured' (OPENAI_API_KEY ausente).",
+        "Detecta la condición y degrada graceful al fallback: ls .claude/agent-memory/{{AGENT_NAME}}/ + grep -ril 'lifetime|your-community-slug' sobre los .md.",
+        "Lee con Read los archivos relevantes encontrados por grep.",
+        "Cita la info encontrada o responde 'no tengo memoria sobre eso' si no hay match.",
+        "Informa al operador de la degradación: 'Mi memoria semántica no está cableada todavía — busqué en los archivos directamente'."
+      ]
+    },
+    {
+      "id": "recall-similarity-baja-marca-incertidumbre",
+      "skills": ["recall"],
+      "query": "¿qué dije sobre la agencia your-agency-slug hace dos meses?",
+      "expected_behavior": [
+        "La skill se activa por 'qué dije sobre X'.",
+        "Invoca /recall con la query.",
+        "Recibe response 200 con memories.length > 0 pero memories[0].similarity < 0.3 (match débil — no hay memoria reciente directamente relacionada).",
+        "{{AGENT_NAME}} marca la incertidumbre en la respuesta: 'podría estar pensando en esto: …' en lugar de afirmar.",
+        "Cita el content de memories[0] pero con disclaimer de baja confianza.",
+        "Sugiere al operador re-formular o aportar más contexto."
+      ]
+    }
+  ]
+}

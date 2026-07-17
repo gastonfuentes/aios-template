@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cloudflared.agent-server</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/cloudflared</string>
+        <string>--no-autoupdate</string>
+        <string>--config</string>
+        <string><HOME>/.cloudflared/config.yml</string>
+        <string>tunnel</string>
+        <string>run</string>
+        <string>agent-server</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string><HOME>/.cloudflared</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>15</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string><HOME></string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>TZ</key>
+        <string>America/Mexico_City</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string><HOME>/Library/Logs/aios/cloudflared.log</string>
+
+    <key>StandardErrorPath</key>
+    <string><HOME>/Library/Logs/aios/cloudflared.err.log</string>
+</dict>
+</plist>

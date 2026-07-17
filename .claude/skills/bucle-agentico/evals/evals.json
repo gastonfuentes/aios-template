@@ -1,0 +1,54 @@
+{
+  "skill_name": "bucle-agentico",
+  "evals": [
+    {
+      "id": 1,
+      "name": "PRP simple sin Sub-fase 0 — happy path",
+      "prompt": "Ejecuta @.claude/PRPs/PRP-002-widget-horario-atencion.md",
+      "files": [".claude/PRPs/PRP-002-widget-horario-atencion.md"],
+      "expected_behavior": [
+        "PASO 0: lee el PRP, extrae estado APROBADO, flippea a EN PROGRESO",
+        "PASO 0: analiza git tree con git status --short + git diff --stat — si limpio, continuar",
+        "PASO 0.5: verifica supuestos heredados empiricamente (npm ls, MCPs, which); resuelve auto-resolubles, escala c1/c2/c3 los irresolubles",
+        "PASO 0.7: anuncia el mapeo en una linea por fila + 'Voy.' y arranca sin pedir confirmacion",
+        "Detecta que la Directiva NO tiene REMOVE/ADD/REPLACE/CONFIG no vacios → NO aplica Sub-fase 0 implicita, entra directo a Fase 1",
+        "Por cada Fase del PRP: PASO 2 mapea contexto (Read/Grep/Glob/MCPs), genera subtareas just-in-time, registra en TodoWrite, ejecuta",
+        "Si error mid-ejecucion: PASO 3.5 protocolo de investigacion 6 pasos antes de escalar c1/c2/c3",
+        "PASO 4 valida cada fase completa antes de transicionar; PASO 2 de la siguiente fase re-mapea contexto incluyendo lo construido",
+        "PASO 5: marca PRP como COMPLETADO, documenta aprendizajes (matriz: subtarea → PRP, fase → brief, feature → skill, transversal → CLAUDE.md), actualiza README, actualiza brief origen si aplica, commit + push autonomo, reporte final citando brief + PRP"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "PRP con Directiva REPLACE/ADD — Sub-fase 0 implicita dispara",
+      "prompt": "Ejecuta @.claude/PRPs/PRP-XXX-migrate-to-tauri-desktop.md",
+      "files": [".claude/PRPs/PRP-XXX-migrate-to-tauri-desktop.md"],
+      "expected_behavior": [
+        "Detecta que la Directiva heredada tiene bloques no vacios: REMOVE (next), REPLACE (src/app → tauri-shell), ADD (@tauri-apps/api), CONFIG (rust toolchain)",
+        "Antepone Sub-fase 0 ANTES de Sub-fase 1, dedicada exclusivamente a aplicar el delta de stack",
+        "Sub-fase 0 tiene su propio mapeo de contexto (que hay que quitar primero, que esta instalado), sus propias subtareas (uninstall paquetes, scaffolding nuevo, mover/renombrar carpetas, configs)",
+        "Sub-fase 0 NO se ejecuta como parte de Sub-fase 1 — es independiente, se ejecuta primero",
+        "Solo despues entra Sub-fase 1 sobre el codebase ya transformado",
+        "Si Sub-fase 0 falla (ej. instalacion de Rust no disponible) escala c1 al usuario con instrucciones simples para instalar la toolchain"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "PRP con error mid-ejecucion — protocolo Auto-Refuerzo (PASO 3.5)",
+      "prompt": "Ejecuta @.claude/PRPs/PRP-XXX-payments-stripe.md (durante la fase de webhook configuration falla con 'signature verification failed')",
+      "files": [".claude/PRPs/PRP-XXX-payments-stripe.md"],
+      "expected_behavior": [
+        "Detecta error en una subtarea de la Fase 'Webhook + signature verification'",
+        "Aplica protocolo de investigacion en 6 pasos antes de declarar bloqueante",
+        "Paso 1: lee error completo + stack trace + logs Stripe relevantes",
+        "Paso 2: grep/glob el codebase por patrones similares ya resueltos (otros webhooks en el proyecto, otras instancias de signature verification)",
+        "Paso 3: usa MCPs disponibles — Stripe MCP si esta activo, supabase MCP para inspeccionar logs de Edge Function si el webhook corre alli",
+        "Paso 4: WebSearch + WebFetch para docs oficiales (Stripe webhook signature) + GitHub issues del paquete stripe-node",
+        "Paso 5: lee aprendizajes en CLAUDE.md (raiz) + en otras skills (payments-polar/SKILL.md) por si el mismo patron de signature verification fue resuelto antes",
+        "Paso 6: itera fixes alternativos (verificar webhook secret no esta truncado, body raw vs parsed, header name correcto)",
+        "Solo si tras agotar los 6 pasos el error sigue, escala c1 (credencial/cuenta — webhook secret incorrecto del usuario), c2 (alcance erroneo — el PRP asume HTTP cuando deberia ser SSE), c3 (accion destructiva no anticipada)",
+        "Tras resolver, documenta el aprendizaje en el PRP (seccion ## Aprendizajes) y continua con la subtarea — NO repite el mismo error en siguientes ciclos"
+      ]
+    }
+  ]
+}

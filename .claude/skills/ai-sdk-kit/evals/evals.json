@@ -1,0 +1,61 @@
+{
+  "skill_name": "ai-sdk-kit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "primer chatbot — happy path",
+      "prompt": "Quiero agregarle a mi app un chat con IA en la página /chat.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'chatbot' sin preguntar al usuario por proveedor",
+        "Selecciona el template chat-básico del Trust Stack: Vercel AI SDK v5 + OpenRouter",
+        "Genera la route handler en app/api/chat/route.ts con streamText + tool-less default",
+        "Crea el cliente en features/chat/ con useChat de @ai-sdk/react",
+        "Agrega OPENROUTER_API_KEY al checklist de env vars (sin pedirla al usuario hasta que el archivo esté listo)",
+        "Valida que tipos compilen con tsc --noEmit antes de cerrar",
+        "Anuncia al operador qué quedó cableado en voz Praxis"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "agente con web search",
+      "prompt": "Necesito que mi asistente busque en internet antes de responder.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'agente que busca'",
+        "Activa el template tools del kit: streamText con tool 'web_search' de Vercel AI SDK",
+        "Cablea la herramienta con un provider concreto (e.g. Perplexity, Tavily) leyendo .env",
+        "El handler retorna stream con tool-calls visibles en el frontend",
+        "Documenta en references/ qué provider quedó elegido y por qué",
+        "Anuncia el cableado sin pedir confirmación al usuario"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "RAG con embeddings",
+      "prompt": "Quiero que mi chatbot responda usando los documentos que subo a Supabase.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'RAG' / 'embeddings'",
+        "Activa el template rag del kit: embed via OpenRouter + pgvector en Supabase",
+        "Genera migración SQL para tabla documents con columna embedding vector(1536) + índice ivfflat",
+        "Habilita RLS owner-only en la tabla nueva",
+        "Genera la route /api/chat que hace similarity search antes del streamText",
+        "Anuncia al operador el patrón aplicado con ruta de migración y route handler"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "generación de imágenes desde chat",
+      "prompt": "Mi asistente debe poder generar imágenes cuando se lo pido.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'generación de imágenes' dentro del chat",
+        "Cablea Gemini 2.0 Flash via OpenRouter dentro de una tool 'generate_image'",
+        "El resultado se sube a Supabase Storage con cleanup >24h",
+        "El frontend renderiza la imagen inline en el mensaje del asistente",
+        "Anuncia al operador la tool agregada y el bucket usado"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+# USER.md — perfil del operador
+
+> Síntesis curada del operador para boot de {{AGENT_NAME}}. Versión "mínimo que el agente
+> debe saber siempre". La memoria operativa de largo plazo vive en `.claude/memory/` y se
+> consulta bajo demanda vía la skill `memory-manager`.
+>
+> **Cómo usar este template**: el agente del alumno reemplaza los placeholders con las
+> respuestas de `INTERVIEW.md` y guarda como `.claude/identity/USER.md`.
+
+---
+
+## Quién es
+
+**{{OPERATOR_NAME}}**. Ubicación: **{{OPERATOR_LOCATION}}** (TZ `{{OPERATOR_TIMEZONE}}`).
+Email owner: **{{OPERATOR_EMAIL}}**.
+
+## Contexto de negocio / trabajo
+
+{{BUSINESS_CONTEXT}}
+
+<!--
+El alumno describe en 3-4 líneas su contexto:
+- A qué se dedica (creator solo, agencia, empresa, estudiante).
+- Cuáles son sus audiencias principales.
+- Qué quiere lograr con su Mission Control (organizar trabajo personal, atender clientes,
+  monitorear métricas BI, automatizar tareas repetitivas, etc.).
+- Stack tecnológico de su negocio si aplica (si vende software, qué construye).
+-->
+
+## Audiencias
+
+- **Él mismo** — usuario único de su Mission Control (single-operator por diseño).
+- {{OPERATOR_AUDIENCES_OPTIONAL}}
+
+## Modus operandi
+
+Practitioner de Vibe Coding. Articula objetivos en lenguaje natural, delega ejecución al
+agente vía la doctrina recursiva Praxis (brief → PRP → bucle-agentico). Esa asimetría es la
+columna del sistema.
+
+## Métricas norte
+
+{{OPERATOR_METRICS_OPTIONAL}}
+
+<!--
+El alumno puede listar 2-4 KPIs que importa. Ejemplos:
+- MRR / ARR si vende SaaS.
+- Throughput de proyectos cerrados si es agencia.
+- Engagement de comunidad si gestiona Skool/Discord.
+- Tasas de conversion si tiene funnel.
+-->
+
+## Preferencias de comunicación
+
+- Español neutro, voz cercana y operativa, sin jerga corporativa.
+- Las decisiones técnicas las toma el agente y las anuncia — cero "¿confirmas?", "¿procedes?".
+- Markdown con bullets cortos, no párrafos densos. Bloques de código con language tag.
+- Tool calls paralelos cuando son independientes. TodoWrite para trabajos multi-paso.
+- Commit + push autónomos del agente (Regla 6e bucle-agentico).
+- Nunca pedirle que corra comandos shell, edite archivos o conozca rutas internas.
+
+## Filosofía guía
+
+Los 12 principios canónicos viven en `.claude/memory/business-context.md` (a poblar por el
+operador después del deploy inicial). Los más operativos están reflejados en `SOUL.md`
+(sección Values).

@@ -1,0 +1,1473 @@
+@import "../styles/macos-26-tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Default wallpaper. Override en runtime via useWallpaper hook. */
+    --wallpaper-url: url("/wallpaper.jpg");
+
+    /* ─── shadcn neutral baseColor — capa de compatibilidad para AI Elements ───
+       Las CSS vars que los componentes shadcn + AI Elements esperan via la
+       sintaxis `hsl(var(--X))`. Formato HSL split (3 numeros: matiz saturacion
+       luminosidad). Mapeo byte-exact con el template `neutral` canonico de
+       shadcn/ui.
+
+       INTENCIONALMENTE OMITIDO: `--accent` queda heredado del DS macOS 26
+       (`--accent: var(--sys-blue)` en macos-26-tokens.css) — los 6 lugares
+       vivos del shell (mc-interactive focus, WallpaperLibrary drag,
+       SidebarItem active, LoginForm primary, AppearanceCard runtime override
+       (PRP-034), check-email link) dependen de que `--accent` siga siendo color
+       literal
+       Apple-blue. Componentes AI Elements que usan `bg-accent` hereden ese
+       blue temporalmente; Fase 2 puede ajustar con override puntual por
+       componente si la estetica chirrria.
+
+       `--ring` override: matchear el focus ring shadcn con `mc-interactive`
+       (que ya usa var(--accent)) para coherencia. */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: var(--accent);
+    --radius: 0.5rem;
+
+    /* Chart palette (shadcn convention — usado por charts/graphs si llegan).
+       Mapeo a sys-* del DS para coherencia visual. */
+    --chart-1: var(--sys-blue);
+    --chart-2: var(--sys-green);
+    --chart-3: var(--sys-orange);
+    --chart-4: var(--sys-purple);
+    --chart-5: var(--sys-pink);
+
+    /* Sidebar palette (shadcn convention — Streamdown code blocks la consumen
+       como container del code box). Mapeo light values canónicos shadcn neutral. */
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: var(--accent);
+  }
+
+  [data-theme="dark"] {
+    --background: 240 4% 11%;
+    --foreground: 0 0% 95%;
+    --card: 240 4% 11%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 4% 11%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 240 4% 11%;
+    /* PRP-029 polish: bump --secondary 16% → 22% para que el bubble user del
+       chat (Message component AI Elements aplica group-[.is-user]:bg-secondary)
+       se vea con contraste real vs --background 11%. El 16% inicial quedaba
+       casi invisible (5% de delta). 22% da ~10% de delta perceptible. */
+    --secondary: 240 4% 22%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 0 0% 65%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: var(--accent);
+
+    /* Sidebar palette dark — usado por Streamdown code blocks como container.
+       Mapeo para que el "card" exterior del code block use un gris ligeramente
+       más oscuro que --secondary (donde vive el bubble user) — ~17%  vs 22% —
+       creando jerarquía visual sutil entre bubble y code container. */
+    --sidebar: 240 4% 13%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 0 0% 95%;
+    --sidebar-primary-foreground: 240 4% 11%;
+    --sidebar-accent: 240 4% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 240 4% 20%;
+    --sidebar-ring: var(--accent);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    height: 100%;
+    font-family: var(--font-system);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100dvh;
+    color: var(--label-primary);
+    background: #000;
+    overflow: hidden;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.20);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.30);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.20);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.30);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ─── Brand: AIOS gradient text (FUERA de @layer utilities) ─── */
+/* Mismo workaround que las liquid-glass: Tailwind v3.4 strippea background-clip:text */
+/* dentro de @layer cuando combina rules. Fuera del layer se conserva intacto. */
+/* La animacion shimmer corre 8s ease-in-out infinite y la apaga el @media        */
+/* (prefers-reduced-motion: reduce) global mas abajo.                              */
+.text-brand-aios {
+  background: linear-gradient(
+    135deg,
+    var(--sys-blue, #0A84FF) 0%,
+    var(--sys-purple, #BF5AF2) 50%,
+    var(--sys-pink, #FF375F) 100%
+  );
+  background-size: 200% 200%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* PRP-032 iter v3: easing simple `ease-in-out` → cubic-bezier macOS canónico
+     easeInOut. Loop continuo (0% y 100% en mismo valor `0% 50%`) preserva
+     ausencia de salto. */
+  animation: mc-brand-shimmer 8s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+@keyframes mc-brand-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ─── Liquid Glass recipes (FUERA de @layer utilities) ─── */
+/* Tailwind v3.4 dentro de @layer utilities strippea propiedades como backdrop-filter */
+/* cuando combina multi-property rules. Aplicando estas clases globalmente sin layer */
+/* preservamos todas las propiedades en el bundle final. */
+.liquid-glass-thin {
+  background: rgba(245, 245, 245, 0.75);
+  backdrop-filter: saturate(180%) blur(40px);
+  -webkit-backdrop-filter: saturate(180%) blur(40px);
+}
+.liquid-glass-regular {
+  /* Opacity 0.92: sidebar denso casi indistinguible del panel main (#1c1c1e dark / */
+  /* #ffffff light). El backdrop-filter blur sigue activo — un toque sutil del */
+  /* wallpaper se cuela como acento atmosferico apenas perceptible, manteniendo */
+  /* la firma glassmorphism premium sin distraer. */
+  background: rgba(245, 245, 245, 0.92);
+  backdrop-filter: saturate(180%) blur(60px);
+  -webkit-backdrop-filter: saturate(180%) blur(60px);
+}
+.liquid-glass-thick {
+  background: rgba(245, 245, 245, 0.97);
+  backdrop-filter: saturate(200%) blur(56px);
+  -webkit-backdrop-filter: saturate(200%) blur(56px);
+}
+html[data-theme="dark"] .liquid-glass-thin {
+  background: rgba(28, 28, 30, 0.75);
+}
+html[data-theme="dark"] .liquid-glass-regular {
+  background: rgba(28, 28, 30, 0.92);
+}
+html[data-theme="dark"] .liquid-glass-thick {
+  background: rgba(28, 28, 30, 0.97);
+}
+
+/* ─── Surface elevation: .mc-card (FUERA de @layer utilities, PRP-035) ─── */
+/* Card opaca elevada para detail panels — patron canonico macOS 26       */
+/* (Settings.app / Mail.app / Notes.app). REEMPLAZA .liquid-glass-thin    */
+/* para call sites que viven sobre el main area opaco                     */
+/* (`bg-white dark:bg-[#1c1c1e]` en AppShell.tsx) donde el blur del       */
+/* .liquid-glass-* no tiene wallpaper detras para activar — el alpha 0.75 */
+/* sobre fondo identico al main queda invisible.                          */
+/*                                                                         */
+/* Composicion: bg opaco diferenciado del main + ring hairline 0.5px      */
+/* (via box-shadow para no afectar box-sizing — patron Shadcn) + shadow   */
+/* elevada distinta por tema (mas pronunciada en dark donde la sombra     */
+/* tiene contexto oscuro para destacarse).                                 */
+/*                                                                         */
+/* Light: card `#ffffff` igual al main `#ffffff`, edge definido por ring  */
+/* `rgba(0,0,0,0.10)` (mismo valor que --separator) + shadow 2px 6%.      */
+/* Dark: card `#2c2c2e` sobre main `#1c1c1e` (+8% luminance perceptible), */
+/* ring tenue `rgba(255,255,255,0.06)` + shadow 2px 30%.                  */
+/*                                                                         */
+/* El consumer aplica `rounded-card` (8px) o `rounded-control` (6px) o    */
+/* el radius que necesite — esta utility NO baked el radius para que      */
+/* paneles/cards/sheets puedan reusarla con distintas curvaturas.         */
+/*                                                                         */
+/* No lleva `backdrop-filter` — es OPACO por contrato. Cero GPU cost de   */
+/* blur sin proposito.                                                    */
+.mc-card {
+  background-color: #ffffff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.10),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+html[data-theme="dark"] .mc-card {
+  background-color: #2c2c2e;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.30);
+}
+
+/* ─── Motion contract: .mc-interactive (FUERA de @layer utilities) ──── */
+/* Contrato canonico de motion del MC para hover + press + focus-visible */
+/* + disabled. Aplicar a CUALQUIER control presionable (button, link con */
+/* href, role=button). Para inputs/labels/surfaces no-presionables (search */
+/* field, drop zone clickable que no quiere scale-press) usar la variante */
+/* .mc-interactive-soft (sin scale-press, pero con focus ring + transition).*/
+/*                                                                          */
+/* El @media (prefers-reduced-motion: reduce) global mas abajo neutraliza  */
+/* automaticamente transform/transitions a 0.001ms — el contrato degrada  */
+/* gracefully sin extra work por componente.                                */
+/*                                                                          */
+/* Componentes que necesiten variantes (ej. swatch con spring scale 1.10 */
+/* en hover, tile con scale 1.03 en hover) suman su tw class encima sin   */
+/* pelearse con el contrato (CSS specificity: hover en utility-class gana */
+/* sobre transform default del contrato).                                   */
+.mc-interactive,
+.mc-interactive-soft {
+  transition-property: transform, background-color, color, box-shadow, opacity, border-color, outline-color;
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mc-interactive {
+  cursor: pointer;
+}
+.mc-interactive:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(0.96);
+  transition-duration: 80ms;
+}
+.mc-interactive:focus-visible,
+.mc-interactive-soft:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mc-interactive:disabled,
+.mc-interactive-soft:disabled,
+.mc-interactive[aria-disabled="true"],
+.mc-interactive-soft[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* ─── Overlay entrance/exit: keyframes + utilities (FUERA de @layer) ─── */
+/* Patron canonico para popovers + modales: opacity + scale + leve         */
+/* translateY al entrar; espejo accelerated al salir. `fill-mode: both`     */
+/* retiene estado final tras la animacion. El backdrop fade es lineal       */
+/* (sin scale, no es contenido informacional).                             */
+@keyframes mc-overlay-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes mc-overlay-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.96) translateY(4px); }
+}
+@keyframes mc-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.mc-overlay-in {
+  animation: mc-overlay-in 220ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+.mc-overlay-out {
+  animation: mc-overlay-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.mc-backdrop-in {
+  animation: mc-backdrop-in 180ms linear both;
+}
+
+@layer utilities {
+  /* ─── Wallpaper background ─── */
+  /* `--wallpaper-url` se actualiza en runtime por el hook useWallpaper. */
+  /* `cover` llena viewport (wallpaper rectangular 16:9 nativo). */
+  .bg-wallpaper {
+    background-image: var(--wallpaper-url);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  /* ─── Window chrome (Finder-like ventana centrada) ─── */
+  /* CRITICO: NO usar `isolation: isolate` aqui. Crea un stacking context aislado */
+  /* que bloquea backdrop-filter de los hijos (sidebar) de ver el wallpaper del */
+  /* <body>. Sin isolation, el Window se renderiza en el stacking global y los */
+  /* backdrop-filter atraviesan correctamente al wallpaper detras. */
+  .window-chrome {
+    border-radius: var(--r-window);
+    box-shadow: var(--shadow-window);
+    overflow: hidden;
+  }
+
+  /* ─── Hairlines ─── */
+  .hairline-r {
+    box-shadow: inset -0.5px 0 0 var(--separator);
+  }
+  .hairline-b {
+    box-shadow: inset 0 -0.5px 0 var(--separator);
+  }
+  .hairline-t {
+    box-shadow: inset 0 0.5px 0 var(--separator);
+  }
+
+  /* ─── Type ramp utilities ─── */
+  .text-largetitle { font: var(--text-largetitle); letter-spacing: -0.02em; }
+  .text-title1     { font: var(--text-title1);     letter-spacing: -0.01em; }
+  .text-title2     { font: var(--text-title2); }
+  .text-title3     { font: var(--text-title3); }
+  .text-headline   { font: var(--text-headline); }
+  .text-body       { font: var(--text-body); }
+  .text-callout    { font: var(--text-callout); }
+  .text-subheadline{ font: var(--text-subheadline); }
+  .text-footnote   { font: var(--text-footnote);   color: var(--label-secondary); }
+  .text-caption1   { font: var(--text-caption1);   color: var(--label-secondary); }
+  .text-caption2   { font: var(--text-caption2);   letter-spacing: 0.04em; text-transform: uppercase; color: var(--label-secondary); }
+}
+
+/* ─── AIOS-specific PWA overrides ─── */
+@media (display-mode: standalone) {
+  html,
+  body {
+    min-height: 100dvh;
+  }
+  body.bg-wallpaper {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+}
+
+/* Mobile: viewport < 768px (Tailwind md breakpoint). En la PWA instalada en
+   iPhone la "Window macOS centrada" no encaja — apagamos el wallpaper en bordes
+   y el body usa color solido que matchea el main area de la Window desktop
+   (#ffffff light / #1c1c1e dark, byte-exact con `(app)/layout.tsx` desktop).
+
+   Tambien forzamos `padding-top: 0` en el body para revertir el override
+   `display-mode: standalone` (apendice PWA arriba) que sumaba safe-area-inset-top
+   al body. En mobile el MobileToolbar es full-bleed translucido y maneja su
+   propio safe-area-inset-top internamente (estilo iOS native Mail/Notes/Music:
+   header detras del status bar de iOS, sin doble padding). Bottom/right/left
+   se mantienen para proteger el home indicator y los bordes laterales. */
+@media (max-width: 767.98px) {
+  body.bg-wallpaper {
+    background-image: none;
+    background-color: #ffffff;
+    padding-top: 0;
+  }
+  html[data-theme="dark"] body.bg-wallpaper {
+    background-color: #1c1c1e;
+  }
+}
+
+/* Drawer slide-in desde la izquierda (FUERA de @layer utilities, mismo workaround
+   que liquid-glass-* y mc-overlay-*). Lo consume SidebarDrawer en mobile.
+   `prefers-reduced-motion: reduce` lo neutraliza via el override global arriba. */
+@keyframes mc-drawer-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.mc-drawer-in-left {
+  animation: mc-drawer-in-left 220ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+/* PRP-034 Sub-fase 5: drawer slide-in desde la derecha — espejo del left.
+   Consumido por Modal placement='sheet-right' (search rightbar). */
+@keyframes mc-drawer-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.mc-drawer-in-right {
+  animation: mc-drawer-in-right 220ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+/* ─── PRP-029 Chat — overrides scoped al Streamdown code block ───────────────
+   Pulimos el styling del code block (consumido por MessageResponse via
+   Streamdown plugins) para que se vea como Claude.ai web:
+
+   - Container outer: single border sutil + bg-secondary (gris perceptible);
+     padding tight 0 (el header y código manejan su propio padding).
+   - Header h-8: padding horizontal alineado con el código (px-4 = 1rem).
+   - Buttons sticky (copy + download): mantener pero sin border separador
+     decorativo, solo bg-secondary translucent.
+   - Inner code container `.language-*`: sin border propio (heredamos del
+     outer), sin radius propio (el outer ya rounded), bg transparent (hereda),
+     padding consistente.
+
+   Esto evita el doble-border + doble-container que el styling default de
+   Streamdown produce. Cero edición del componente vendored — solo CSS scoped
+   por `[data-streamdown="code-block"]`. */
+[data-streamdown="code-block"] {
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 0;
+  margin-block: 1rem;
+}
+[data-streamdown="code-block-header"] {
+  padding: 0.5rem 1rem 0;
+  height: auto;
+  min-height: 2rem;
+}
+[data-streamdown="code-block-header"] > span {
+  margin-left: 0;
+}
+[data-streamdown="code-block"] > .pointer-events-none {
+  margin-top: -2rem;
+  padding-right: 0.5rem;
+}
+[data-streamdown="code-block-actions"] {
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+}
+[data-streamdown="code-block"] > .language-typescript,
+[data-streamdown="code-block"] > .language-javascript,
+[data-streamdown="code-block"] > .language-tsx,
+[data-streamdown="code-block"] > .language-jsx,
+[data-streamdown="code-block"] > .language-bash,
+[data-streamdown="code-block"] > .language-shell,
+[data-streamdown="code-block"] > .language-sh,
+[data-streamdown="code-block"] > .language-zsh,
+[data-streamdown="code-block"] > .language-python,
+[data-streamdown="code-block"] > .language-py,
+[data-streamdown="code-block"] > .language-json,
+[data-streamdown="code-block"] > .language-yaml,
+[data-streamdown="code-block"] > .language-yml,
+[data-streamdown="code-block"] > .language-html,
+[data-streamdown="code-block"] > .language-css,
+[data-streamdown="code-block"] > .language-sql,
+[data-streamdown="code-block"] > .language-md,
+[data-streamdown="code-block"] > .language-markdown,
+[data-streamdown="code-block"] > .language-plaintext,
+[data-streamdown="code-block"] > div[class^="language-"],
+[data-streamdown="code-block"] > div[class*=" language-"] {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.25rem 1rem 1rem;
+  margin: 0;
+}
+
+/* Inline code (`<code>` fuera de pre block) — distinguir con bg sutil
+   y monospace ya viene del Streamdown plugin. */
+.group-\[\.is-assistant\] :not(pre) > code {
+  background: hsl(var(--secondary));
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+/* ─── PRP-029 Chat — neutralizar size-full del Streamdown root ───────────────
+   PRP-029 polish iter7: el MessageResponse de AI Elements aplica className
+   "size-full" (= width:100% + height:100%) al <Streamdown> root via cn()
+   merge. En production builds, height:100% inflando el assistant message
+   en flex-col context donde el ancestor ConversationContent tiene
+   min-height:100%. Resultado: el message consume parte del espacio que el
+   spacer flex-1 debería absorber, dejando los mensajes top-anchored en vez
+   de bottom-anchored.
+
+   Fix: forzar height:auto en todos los Streamdown roots dentro del
+   Conversation. Selector específico por contexto para no afectar otros
+   uses de Streamdown que podrían querer size-full intencionalmente. */
+[role="log"] [data-streamdown="root"],
+[role="log"] .group div[class*="size-full"] {
+  height: auto !important;
+}
+
+/* ─── PRP-029 Chat — refine PromptInput visual ───────────────────────────────
+   El InputGroup vendored aplica border + ring on focus. Suavizamos el ring
+   a accent con opacity en vez del literal full-saturation. */
+.aios-chat-input [data-slot="input-group"] {
+  border-color: hsl(var(--border));
+  background: hsl(var(--secondary) / 0.55);
+}
+.aios-chat-input [data-slot="input-group"]:has(textarea:focus) {
+  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+/* ─── PRP-029 Chat — textarea autosize + centrado vertical (iter10) ──────────
+   AI Elements PromptInputTextarea declara `field-sizing-content max-h-48
+   min-h-16` (utilities Tailwind v4). En v3.4 (DS macOS 26 byte-exact PRP-018),
+   `field-sizing-content` NO existe en el compiler — el textarea queda con
+   `field-sizing: fixed` (default browser) y `min-height: 64px` literal.
+   Resultado: con 1 línea de texto (line-height 20px + padding 12+12 = 44px),
+   sobran 20px de espacio interior y el texto queda top-aligned (textareas
+   por default alinean contenido al top, NO al center vertical).
+
+   Fix: scoped al textarea del chat, declarar `field-sizing: content` literal
+   (CSS spec moderna, soporte universal Chrome/Safari/Firefox 2024+) +
+   `min-height: 44px` (justo el espacio para 1 línea + padding simétrico) +
+   `max-height: 200px` (ligeramente más que el clamp original, autosize hasta
+   ~7 líneas). Resultado: textarea h=44px cuando vacío o 1 línea con texto
+   visualmente centrado; crece a 64/84/104/... con 2/3/4/... líneas hasta
+   clamp en 200px (entonces aparece scrollbar interno).
+
+   `box-sizing: border-box` explícito por si alguna cascada lo modifica
+   (textareas son content-box por default en algunos browsers viejos).
+   `vertical-align: middle` no afecta al contenido del textarea — preservar
+   el comportamiento default top-aligned y dejar que field-sizing haga el
+   trabajo de centrado visual via match exact contenido-↔-altura. */
+.aios-chat-input textarea[name="message"] {
+  field-sizing: content;
+  /* PRP-031 iter11 (operador feedback "slim minimalista elegante"):
+     reducir aún más. Antes iter10: min-h 32 + pad 6+6 = 32px height.
+     Ahora: min-h 28 + pad 4+4 = 28px height (line-height 20 + pad 8).
+     Combinado con paddings reducidos del input-group y footer, queda
+     un input total ~72px (era 99px). */
+  min-height: 28px;
+  max-height: 200px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+}
+
+/* PRP-029 polish iter10 (FIX SECUNDARIO): el InputGroup vendored declara
+   `h-9 has-[>textarea]:h-auto overflow-hidden`. La regla `has-[>textarea]`
+   espera al textarea como child DIRECTO del InputGroup. Pero la chain real
+   es InputGroup → <div className="contents"> (PromptInputBody) → textarea.
+   CSS `:has(>textarea)` NO atraviesa `display: contents` — el direct child
+   del InputGroup ES el div.contents, NO el textarea. Resultado: h-9 (36px)
+   se queda fijo + overflow-hidden clippea las líneas extras del textarea
+   cuando autosize crece a 2/3/N líneas (solo se ve la línea del medio).
+
+   Fix scoped: forzar height auto + min-height 44px (consistente con el
+   textarea floor) + overflow visible para que el textarea autosize empuje
+   al InputGroup como el AI Elements registry esperaba originalmente.
+   El border del InputGroup sigue intacto (los wrappers visuales no rompen). */
+.aios-chat-input [data-slot="input-group"] {
+  height: auto;
+  min-height: 44px;
+  overflow: visible;
+  /* PRP-030 polish (operador feedback): el InputGroup vendored alinea su
+     último child (el submit button) pegado al borde derecho. Le damos
+     padding-right de 6px para que el botón respire del borde y se vea
+     armónico con el padding-left que ya tiene el textarea (default del
+     InputGroup). El padding adicional se reparte simétrico para que el
+     bottom no quede más apretado que el top.
+
+     PRP-031 iter11c (operador feedback "submit en la pura esquina con
+     leve borde libre simétrico a la esquina, como Claude Code"):
+     - pad-right: 6 → 0 (cero pad externo, submit pegado al borde derecho)
+     - pad-top: 12 → 8 (top section 41 ≈ bottom 40, asimetría 1px)
+     - pad-bottom: 4 → 0 (cero pad externo, submit pegado al borde bottom)
+     Combinado con footer override (pad-right 3px) → submit queda en la
+     pura esquina con ~3px de borde libre simétrico. Total height 83-85. */
+  padding-right: 0;
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+
+/* ─── PRP-030 Chat polish — submit button reactivo al accent del DS ───────────
+   El operador puede cambiar el accent del DS en runtime desde la AppearanceCard
+   en /settings (PRP-034 Sub-fase 1; antes vivía en TweaksPopover) — 8 swatches:
+   blue/purple/pink/red/orange/yellow/green/teal. El cambio
+   muta la CSS var --accent globalmente. Esta utility hace que el botón de
+   enviar del chat herede automáticamente ese accent sin tocar el componente
+   vendored AI Elements PromptInputSubmit (cero edición a vendored, override
+   por className desde el call site).
+
+   REGLA DURA (operador feedback explícito): el botón debe verse SIEMPRE como
+   el accent literal, sea enabled o disabled. Cero opacity reducido, cero
+   alpha channel del bg. El Tailwind utility `disabled:opacity-50` del
+   InputGroupButton vendored se neutraliza con `opacity: 1 !important` en
+   todos los selectores. La señal "disabled" la da solo `cursor: not-allowed`
+   — el color permanece accent puro porque es identidad visual del producto.
+
+   `background-color` y `background` ambos declarados con `!important` para
+   ganar specificity sobre el `bg-primary` shadcn que el InputGroupButton
+   vendored aplica via cva variants. */
+.aios-chat-submit,
+.aios-chat-submit:disabled,
+.aios-chat-submit[disabled],
+.aios-chat-submit[aria-disabled="true"] {
+  background: var(--accent) !important;
+  background-color: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  /* PRP-031 iter9 (operador feedback): respiración visual entre el bot
+     icon (transparente, low contrast) y el submit accent (sólido azul,
+     alto contrast). El gap real es 4px (igual al cluster izquierdo) pero
+     el contraste fuerte del accent hacía parecer "pegado". 6px de margin
+     extra equilibra la percepción visual sin chirriar. */
+  margin-left: 6px !important;
+}
+.aios-chat-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.aios-chat-submit:disabled,
+.aios-chat-submit[disabled],
+.aios-chat-submit[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+.aios-chat-submit > svg {
+  color: #ffffff !important;
+}
+
+/* PRP-031 polish iter2 — Select trigger compact macOS 26 style para
+   effort + model selectors del bottom row del chat.
+
+   AI Elements PromptInputSelectTrigger viene de shadcn `SelectTrigger` con
+   defaults `h-9 px-3` que en compact `size="sm"` queda como `h-8 px-2`. Para
+   matchear el tamaño visual del [+] action menu button (icon-sm h-7 w-7) y
+   el mic button, override a `h-7 px-2 text-xs` y forzar truncate del valor
+   para que strings largos del daemon ("Default (recommended)") no overflow
+   ni rompan el wrap.
+
+   `max-w` clamp para que no compita visualmente con el input. El value
+   text se trunca elegantemente al overflow. */
+.aios-chat-select-trigger {
+  height: 1.75rem !important;
+  padding-inline: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  border-radius: 0.4rem !important;
+  gap: 0.25rem !important;
+  color: var(--label-secondary) !important;
+  max-width: 9rem;
+  min-width: 5.5rem;
+  /* flex-shrink: 0 evita que el min-w-0 del cluster comprima el trigger
+     a su intrinsic content width — preserva el min-width declarado. */
+  flex-shrink: 0;
+}
+/* Mobile <480px — reducir min-width para que todo el bottom row + submit
+   accent quepa en viewport sin overflow horizontal. El texto compact
+   "Máximo" / "Default" cabe en 4rem (64px) con padding + chevron. */
+@media (max-width: 479.98px) {
+  .aios-chat-select-trigger {
+    min-width: 4rem;
+    max-width: 6rem;
+    padding-inline: 0.4rem !important;
+  }
+}
+
+/* PRP-031 polish iter4 — Trigger icon-only macOS 26 native.
+
+   Operador feedback empírico: cambia los effort/model triggers a SOLO
+   un icon (cerebrito Brain para thinking, robotito Bot para model). El
+   click abre el dropdown que muestra label + description multi-line de
+   cada item; el item activo se marca con `✓` checkmark. Mejor patrón
+   macOS-native que un text trigger compact.
+
+   Geometría: square 28×28px (matchea icon-sm del + action menu y del
+   mic / submit accent buttons del cluster), padding 0 (el icon ocupa
+   el centro), min/max-width neutralizados.
+
+   El chevron interno del SelectTrigger (line 1278 del primitive shadcn
+   vendored, hardcoded `<SelectPrimitive.Icon><ChevronDownIcon /></SelectPrimitive.Icon>`)
+   se oculta con `> svg:last-of-type { display: none }`. NO edita el
+   componente vendored — override scoped por className. */
+.aios-chat-icon-trigger {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  border-radius: 0.4rem !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--label-secondary) !important;
+  background: transparent !important;
+  border: none !important;
+}
+/* Ocultar el chevron interno del SelectTrigger (icon hardcoded del primitive). */
+.aios-chat-icon-trigger > svg:last-of-type {
+  display: none !important;
+}
+/* El SelectValue wraps el icon; centramos sin margen ni padding extra. */
+.aios-chat-icon-trigger > span:first-of-type {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.aios-chat-icon-trigger:hover,
+.aios-chat-icon-trigger[aria-expanded="true"] {
+  color: var(--label-primary) !important;
+  background: color-mix(in oklab, var(--accent) 10%, transparent) !important;
+}
+.aios-chat-icon-trigger[aria-expanded="true"] {
+  color: var(--accent) !important;
+}
+.aios-chat-select-trigger > span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  min-width: 0;
+}
+.aios-chat-select-trigger > svg {
+  width: 0.75rem !important;
+  height: 0.75rem !important;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.aios-chat-select-trigger:hover,
+.aios-chat-select-trigger[aria-expanded="true"] {
+  color: var(--label-primary) !important;
+  background: color-mix(in oklab, var(--accent) 8%, transparent) !important;
+}
+
+/* Dropdown content del select — material liquid-glass macOS 26 byte-exact
+   con look "Popover" denso (vs translúcido casi invisible del iter previo).
+
+   Bug iter5: el iter previo usaba `var(--material-thick)` que NO EXISTE
+   en el DS macOS 26 (los tokens canónicos son `--material-thick-light`
+   con auto-switch dark via re-aliasing en `[data-theme="dark"]`). Sin
+   match, fallback a transparent → el dropdown se veía transparente sin
+   glassmorphism efectivo aunque el backdrop-filter estaba declarado.
+
+   Fix iter5b (operador feedback "se ven transparentes"): usar un bg
+   sólido literal con alpha alto (0.95) para el look "Popover" macOS
+   donde el contenido detrás se difumina pero NO se transparenta — solo
+   el borde respira con el material. blur 60px + saturate 200% refuerza
+   el efecto. Light/dark switch via cascade del data-theme="dark". */
+.aios-chat-select-content {
+  min-width: 14rem !important;
+  border-radius: 0.625rem !important;
+  padding: 0.3rem !important;
+  border: 1px solid var(--separator) !important;
+  background: rgba(245, 245, 245, 0.96) !important;
+  backdrop-filter: blur(60px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(60px) saturate(200%) !important;
+  box-shadow:
+    0 0.5px 0 rgba(255, 255, 255, 0.06) inset,
+    0 16px 40px -8px rgba(0, 0, 0, 0.55),
+    0 6px 16px -4px rgba(0, 0, 0, 0.35);
+}
+[data-theme="dark"] .aios-chat-select-content {
+  background: rgba(28, 28, 30, 0.96) !important;
+  box-shadow:
+    0 0.5px 0 rgba(255, 255, 255, 0.08) inset,
+    0 16px 40px -8px rgba(0, 0, 0, 0.6),
+    0 6px 16px -4px rgba(0, 0, 0, 0.4);
+}
+.aios-chat-select-content [role="option"] {
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem !important;
+  cursor: pointer;
+  gap: 0.55rem;
+}
+.aios-chat-select-content [role="option"][data-state="checked"] {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.aios-chat-select-content [role="option"]:hover:not([data-state="checked"]),
+.aios-chat-select-content [role="option"][data-highlighted] {
+  background: color-mix(in oklab, var(--label-primary) 6%, transparent);
+}
+
+/* PRP-031 iter8 — Mic floating anchored al hairline divisor (bottom).
+
+   El iter7 con `top: 6px` anclaba el mic al top del input-group. Cuando
+   el textarea crece multi-línea, el mic se mantiene fijo arriba mientras
+   el cursor del operador queda muchas líneas más abajo. Mal patrón UX.
+
+   Fix iter8: cambiar a `bottom: 52px` anchored desde el bottom del
+   input-group. El 52px = altura del footer (~48px = pt 10 + buttons 28
+   + pb 10) + 4px gap arriba del hairline divisor. Resultado: el mic
+   queda visualmente flotando justo encima del hairline, "anclado al
+   pie del textarea". Cuando el textarea crece multi-línea, el mic NO
+   se mueve — queda donde el cursor termina (donde el usuario escribe
+   la última línea visible).
+
+   Si el operador percibe necesidad de ajuste fino post-deploy, modificar
+   el 52px aquí (el footer height + 4px gap es el contrato). */
+.aios-chat-input [data-slot="input-group"] {
+  position: relative;
+}
+.aios-chat-mic-floating {
+  position: absolute;
+  /* PRP-031 iter11c: footer ahora es 39px (32 max button + 3+3 pad + 1
+     border). 44px desde ig bottom = ~5px arriba del hairline. */
+  bottom: 44px;
+  right: 6px;
+  z-index: 2;
+}
+.aios-chat-input textarea[name="message"] {
+  padding-right: 42px !important;
+}
+
+/* PRP-031 iter8 — Hairline divisor sutil entre textarea y bottom row +
+   buttons centrados verticalmente entre hairline y border bottom.
+
+   Replica el pattern Claude Code: línea tenue de 1px que separa visualmente
+   el área de texto del área de controles. Color con alpha baja para que sea
+   visible sin chirriar — `var(--separator)` del DS macOS 26 con opacity 70%.
+
+   Padding simétrico (10px top + 10px bottom override del `pb-3` heredado
+   del `[.border-t]:pt-3` del InputGroupAddon block-end) garantiza que los
+   buttons del bottom row queden centrados verticalmente en el footer
+   (operador feedback iter8: "los iconos quedan muy pegados al hairline,
+   bájalos para centrar entre línea y borde bottom"). */
+.aios-chat-footer {
+  border-top: 1px solid color-mix(in oklab, var(--separator) 70%, transparent) !important;
+  margin-top: 4px !important;
+  /* PRP-031 iter11c: padding optimizado para el patrón Claude Code submit-
+     in-corner. Padding-top: 3px (slim, buttons quasi-pegados al hairline);
+     padding-bottom: 3px (slim, submit casi en el borde); padding-right:
+     3px (override del `px-3` vendored del InputGroupAddon, submit pegado
+     al borde derecho con 3px de respiración simétrica); padding-left: 12px
+     (preservar default para el cluster izquierdo `[+] [🧠]`). */
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+  padding-right: 3px !important;
+  padding-left: 12px !important;
+}
+
+/* Mic button recording state — pulse animation roja respetando reduced motion.
+   PRP-032 iter v3: easing `ease-in-out` simple → cubic-bezier macOS canónico
+   easeInOut (0.42, 0, 0.58, 1) para coherencia con resto de movimientos del DS. */
+.aios-mic-recording {
+  color: var(--sys-red) !important;
+  background: color-mix(in oklab, var(--sys-red) 12%, transparent) !important;
+  animation: aios-mic-pulse 1.4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+@keyframes aios-mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--sys-red) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in oklab, var(--sys-red) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aios-mic-recording { animation: none; }
+}
+
+/* ── Thinking indicator (PRP-032 iter post-cierre) ───────────────────────────
+   Reemplaza el `<Shimmer>` de AI Elements que es INVISIBLE en MC: el componente
+   vendored usa `linear-gradient(var(--color-muted-foreground), ...)` con prefix
+   `--color-X` (sintaxis Tailwind v4 que genera vars desde theme config). En MC
+   con Tailwind v3.4 declaramos `--muted-foreground` SIN prefix `--color-` → el
+   gradient resuelve a string vacío + `bg-clip-text text-transparent` queda
+   completamente invisible. Smoke verificó empíricamente que el Shimmer NO se
+   renderea visible.
+
+   Approach canónico AIOS: componente propio que usa tokens del DS macOS 26
+   (`--label-secondary`, `--label-tertiary`) que SÍ están declarados desde
+   `src/styles/macos-26-tokens.css`. Combina:
+     - Shimmer horizontal sobre el texto "Thinking" (gradient animado bg-clip-text
+       canónico Apple, mismo pattern que `.text-brand-aios` PRP-021).
+     - 3 dots pulsantes staggered al estilo ChatGPT/Claude.ai web.
+
+   `prefers-reduced-motion: reduce` global lo neutraliza automáticamente. */
+.aios-thinking-shimmer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-size: 14px;
+  line-height: 1.5;
+  /* PRP-032 iter v3 — gradient con DOS ciclos completos dentro de
+     background-size 200%. Trucos para loop infinito SIN salto perceptible:
+     1) background-position pasa de 0% a -200% (recorre exactamente 2 ciclos)
+     2) Al final del keyframe, la posición visual es IDÉNTICA al inicio porque
+        el gradient se repite cada 100% del background-size
+     3) animation-timing-function `linear` mantiene velocidad constante (cualquier
+        curva no-linear produce micro pausas perceptibles al loopear)
+     Resultado: shimmer continuo sin "corte abrupto" visible al loopear. */
+  background: linear-gradient(
+    90deg,
+    var(--label-tertiary) 0%,
+    var(--label-primary) 25%,
+    var(--label-tertiary) 50%,
+    var(--label-primary) 75%,
+    var(--label-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: aios-thinking-shimmer 3.2s linear infinite;
+}
+
+@keyframes aios-thinking-shimmer {
+  /* 0% y 100% en posiciones visualmente equivalentes (offset == 0 mod 100% de
+     background-size) → loop infinito perfectamente continuo. */
+  from { background-position: 0% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.aios-thinking-shimmer > .aios-thinking-dot {
+  display: inline-block;
+  /* macOS easing canónico cubic-bezier(0.42, 0, 0.58, 1) easeInOut — suaviza
+     la transición opacity/translateY más natural que `ease-in-out` simple. */
+  animation: aios-thinking-dot 1.4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+.aios-thinking-shimmer > .aios-thinking-dot:nth-of-type(2) { animation-delay: 0.16s; }
+.aios-thinking-shimmer > .aios-thinking-dot:nth-of-type(3) { animation-delay: 0.32s; }
+
+@keyframes aios-thinking-dot {
+  /* Loop natural: 0% y 100% idénticos → cero salto. */
+  0%, 70%, 100% { opacity: 0.35; transform: translateY(0); }
+  35%           { opacity: 1;    transform: translateY(-1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aios-thinking-shimmer { animation: none; }
+  .aios-thinking-shimmer > .aios-thinking-dot { animation: none; opacity: 0.7; transform: none; }
+}
+
+/* ── Streamdown animation runtime (PRP-032 iter v5 — optimización lag) ─────────
+   Bug raíz v3 ya resuelto: keyframes + regla `[data-sd-animate]` aportados
+   por MC (Streamdown setea custom props pero no los keyframes).
+
+   v5 — optimización canónica de performance descubierta cuando el operador
+   reportó lag con mensajes multi-line:
+
+   Problemas encontrados al investigar perf:
+   1. `will-change: opacity, filter, transform` PERMANENTE en TODOS los spans
+      reservaba GPU layers para 2000+ spans en un mensaje largo → GPU memory
+      exhausta + repaint scope masivo.
+   2. `animation-fill-mode: both` mantenía la animación en estado vivo durante
+      todo el lifetime del componente, no solo durante la animación.
+   3. `display: inline-block` global creaba bounding box por span → layout cost.
+   4. `setPrevContentLength` de Streamdown se sobreescribe entre blocks de
+      markdown → multi-paragraph re-anima TODOS los párrafos previos en cada
+      render (verificado leyendo el bundle: `o.lastRenderCharCount = p.count`
+      en cada block sobrescribe el acumulado).
+   5. Stagger 20ms × N chars del último delta podía meter 200+ animations
+      simultáneas activas (lag visible en mensajes largos).
+
+   Optimizaciones aplicadas:
+   - `animation-fill-mode: forwards` (estado FINAL solo, no initial+final).
+   - `will-change` NO permanente — gestionado por JS event listener delegado
+     en el ChatPage que aplica `will-change: opacity, filter` SOLO durante la
+     animación y lo libera en `animationend`.
+   - Regla `:not(:last-child) [data-sd-animate]` para que SOLO el ÚLTIMO bloque
+     de markdown del message anime — los párrafos previos se renderean
+     instantáneos sin animation cost. Esto es lo que ChatGPT/Claude.ai web
+     hacen visualmente: solo el último párrafo crece, los previos están
+     "settled" estables.
+   - blur initial 6px → 4px (menos GPU work por frame).
+   - Config Streamdown ChatPage: stagger 20→12ms + duration 350→280ms para
+     menos animations simultáneas en flight.
+
+   Resultado: mensajes largos con multi-paragraph fluyen sin lag perceptible.
+   `prefers-reduced-motion: reduce` global lo neutraliza todo. */
+[data-sd-animate] {
+  display: inline-block;
+  /* PRP-032 iter v6 — `vertical-align: baseline` evita el shift natural del
+     inline-block que produce micro-jumps cuando los chars caen en line breaks
+     mid-stream (Streamdown segmenta por char; sin baseline explícito, el
+     browser puede alinear inline-block por su "default" que es text-bottom,
+     creando saltos verticales sub-pixel). */
+  vertical-align: baseline;
+  animation-name: var(--sd-animation);
+  animation-duration: var(--sd-duration, 220ms);
+  animation-timing-function: var(--sd-easing, cubic-bezier(0.16, 1, 0.3, 1));
+  animation-delay: var(--sd-delay, 0ms);
+  /* PRP-032 iter v6 — FIX RAÍZ del bug "animación extraña":
+     `fill-mode: forwards` solo aplica el state FINAL post-animación. Durante
+     el delay (chars con stagger × N), el char queda en su default natural
+     (opacity:1 sin filter) → VISIBLE. Cuando llega su turno, hace
+     `blur:4px → 0` produciendo POPPING: visible → blur → visible. Eso es
+     lo "extraño" que el operador percibe.
+     `both` aplica state INITIAL durante delay (opacity:0 + blur:4px, invisible)
+     Y state FINAL post-animation. Comportamiento canónico: chars invisibles
+     hasta su turno → reveal natural smooth sin popping. */
+  animation-fill-mode: both;
+  /* PRP-032 iter v6 — `will-change` declarativo SOLO en spans que efectivamente
+     animan. La regla `:not(:last-child)` abajo lo limpia para paragraphs
+     previos settled. blurIn solo usa opacity + filter (no transform), así que
+     `will-change` se limita a esos dos para no reservar GPU layers innecesarios. */
+  will-change: opacity, filter;
+}
+
+/* Optimización paragraph-scoped: dentro de un MessageResponse (Streamdown),
+   solo el ÚLTIMO hijo top-level anima. Los párrafos previos se renderean
+   instant (animation: none) para evitar re-animar contenido settled cuando
+   Streamdown re-procesa todo el árbol en cada text_delta.
+
+   Selector: `.streamdown :not(:last-child) [data-sd-animate]` —
+   identifica spans `data-sd-animate` dentro de cualquier hijo que NO sea
+   el último del MessageResponse wrapper. Soporta tanto `<p>` como `<ul>`,
+   `<pre>`, etc.
+
+   Streamdown no agrega class `.streamdown` por default; targeteamos via el
+   wrapper class `.aios-stream-message` que MessageResponse del DS hereda.
+   Como fallback más permisivo (sin necesidad de wrapper class), también
+   apuntamos al árbol genérico via attribute selector que filtra solo
+   contenedores que tienen el plugin animate activo. */
+.aios-stream-message > :not(:last-child) [data-sd-animate],
+.aios-stream-message :not(:last-child) > [data-sd-animate] {
+  animation: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Containment para limitar repaint scope a la message bubble. Reduce el
+   trabajo del compositor cuando se re-renderea text durante streaming. */
+.aios-stream-message {
+  contain: layout style;
+}
+
+@keyframes sd-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sd-blurIn {
+  /* blur 6px → 4px iter v5: menos GPU work por frame manteniendo el efecto
+     traslúcido perceptible. */
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+@keyframes sd-slideUp {
+  from { opacity: 0; transform: translateY(0.4em); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sd-animate] {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* ── Tool component (PRP-032 iter v4 — rediseño macOS premium) ────────────────
+   Sustituye los estilos shadcn neutral del `tool.tsx` vendored por tokens DS
+   macOS 26 + animations por estado. Outer wrapper como liquid-glass-thin
+   card con hairline + radius macOS canónico; header con mc-interactive;
+   status icon protagonista con animation specifica por state (pending rotate,
+   running rotate accent, completed bounce-in, error pulse); pill canónico
+   macOS con color semántico color-mix(in oklab, var(--sys-*) 12%, transparent).
+
+   `prefers-reduced-motion: reduce` global neutraliza todas las animations al
+   final del bloque. */
+
+/* Outer wrapper Tool — card premium. */
+.aios-tool {
+  border: 1px solid var(--separator);
+  border-radius: 12px;
+  background: var(--material-thin-light);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 220ms cubic-bezier(0.42, 0, 0.58, 1),
+              box-shadow 220ms cubic-bezier(0.42, 0, 0.58, 1),
+              background-color 220ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+[data-theme="dark"] .aios-tool {
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.aios-tool:hover {
+  border-color: var(--separator-opaque);
+}
+
+/* Header (CollapsibleTrigger) — heredamos mc-interactive transitions; aquí
+   sumamos hover bg sutil + chevron rotation con curva macOS. */
+.aios-tool-header {
+  background: transparent;
+  border-radius: 12px 12px 0 0;
+}
+.aios-tool-header:hover {
+  background: color-mix(in oklab, var(--label-primary) 4%, transparent);
+}
+.aios-tool-header[data-state="closed"] {
+  border-radius: 12px;
+}
+.aios-tool-chevron {
+  transition: transform 220ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+.aios-tool-header[data-state="open"] .aios-tool-chevron {
+  transform: rotate(180deg);
+}
+
+/* Status pill — color semántico DS macOS 26 con bg color-mix sutil. */
+.aios-tool-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.6;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background-color 220ms cubic-bezier(0.42, 0, 0.58, 1),
+              color 220ms cubic-bezier(0.42, 0, 0.58, 1);
+}
+.aios-tool-status-pill-input-streaming,
+.aios-tool-status-pill-approval-requested {
+  background: color-mix(in oklab, var(--label-secondary) 10%, transparent);
+  color: var(--label-secondary);
+}
+.aios-tool-status-pill-input-available {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.aios-tool-status-pill-approval-responded {
+  background: color-mix(in oklab, var(--sys-blue) 14%, transparent);
+  color: var(--sys-blue);
+}
+.aios-tool-status-pill-output-available {
+  background: color-mix(in oklab, var(--sys-green) 14%, transparent);
+  color: var(--sys-green);
+}
+.aios-tool-status-pill-output-denied {
+  background: color-mix(in oklab, var(--sys-orange) 14%, transparent);
+  color: var(--sys-orange);
+}
+.aios-tool-status-pill-output-error {
+  background: color-mix(in oklab, var(--sys-red) 14%, transparent);
+  color: var(--sys-red);
+}
+
+/* Status icons — animations canónicas macOS por state. */
+.aios-tool-icon-state {
+  flex-shrink: 0;
+}
+
+/* Pending — rotation lenta gris (waiting upstream). */
+.aios-tool-icon-pending {
+  color: var(--label-secondary);
+  animation: aios-tool-spin 1.6s linear infinite;
+}
+
+/* Running — rotation con accent del DS (active execution). */
+.aios-tool-icon-running {
+  color: var(--accent);
+  animation: aios-tool-spin 1.2s linear infinite;
+}
+
+/* Completed — bounce-in con scale spring (curva canónica iOS UIView.animate
+   con spring damping ~0.6). */
+.aios-tool-icon-completed {
+  color: var(--sys-green);
+  animation: aios-tool-bounce-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Error — pulse rojo continuo (atención mantenida). */
+.aios-tool-icon-error {
+  color: var(--sys-red);
+  animation: aios-tool-error-pulse 1.6s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+/* Denied — color naranja estático (no animation, evita ambigüedad). */
+.aios-tool-icon-denied {
+  color: var(--sys-orange);
+}
+
+/* Approval states — color contextual estático. */
+.aios-tool-icon-approval-requested {
+  color: var(--sys-orange);
+}
+.aios-tool-icon-approval-responded {
+  color: var(--sys-blue);
+}
+
+/* Rotation share — loops continuos sin salto (0% y 100% idénticos). */
+@keyframes aios-tool-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Bounce-in completed — scale spring + opacity reveal. */
+@keyframes aios-tool-bounce-in {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Error pulse — opacity + scale subtle, infinite. */
+@keyframes aios-tool-error-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.65; transform: scale(0.92); }
+}
+
+/* Tool name typography. */
+.aios-tool-name {
+  letter-spacing: -0.005em;
+}
+
+/* Sections (Parameters / Result / Error) labels. */
+.aios-tool-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--label-tertiary);
+  margin: 0;
+}
+.aios-tool-label-error {
+  color: var(--sys-red);
+}
+
+/* Code block container dentro del Tool — bg fill-tertiary del DS, radius
+   smaller y hairline propio (sobreescribe el `bg-muted/50` shadcn). */
+.aios-tool-code {
+  background: var(--fill-tertiary, color-mix(in oklab, var(--label-primary) 6%, transparent));
+  border: 1px solid var(--separator);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.aios-tool-code-error {
+  background: color-mix(in oklab, var(--sys-red) 8%, transparent);
+  border-color: color-mix(in oklab, var(--sys-red) 24%, transparent);
+}
+
+/* Reset shadcn `bg-background border-border` que el CodeBlock interno trae
+   por default — ya tenemos nuestro propio container. */
+.aios-tool-code > [data-streamdown="code-block-body"] {
+  border: none;
+  background: transparent;
+}
+
+/* prefers-reduced-motion: neutralizar todas las animations del Tool. */
+@media (prefers-reduced-motion: reduce) {
+  .aios-tool,
+  .aios-tool-header,
+  .aios-tool-chevron,
+  .aios-tool-status-pill {
+    transition: none !important;
+  }
+  .aios-tool-icon-pending,
+  .aios-tool-icon-running,
+  .aios-tool-icon-completed,
+  .aios-tool-icon-error {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ─── PRP-036 (iter post-cierre): shell mode transition contract ──────────────
+   El shell del MC tiene 3 modos discretos seteados por el hook `useShellMode`:
+   'floating' (default, Window centrada con wallpaper en bordes), 'expanded'
+   (CSS edge-to-edge dentro del browser, browser chrome visible), 'fullscreen'
+   (mismo CSS edge-to-edge + Fullscreen API browser activa). El menú del
+   traffic light verde del Sidebar ofrece los 3 modos explícitos.
+
+   Visualmente 'expanded' y 'fullscreen' son IDÉNTICOS en CSS (ambos eliminan
+   padding del viewport wrapper + border-radius y shadow del .window-chrome).
+   La diferencia entre los dos es solo si se invoca o no `requestFullscreen()`
+   en el DOM — eso se decide en el JS del hook, NO en CSS. Por eso este bloque
+   matchea ambos modos con un solo selector via attribute selector OR.
+
+   Las 3 propiedades transicionan en paralelo a 320ms con la curva canónica
+   macOS de zoom (cubic-bezier(0.32, 0.72, 0, 1)). El `prefers-reduced-motion`
+   global neutraliza automáticamente las transitions a 0.001ms.
+
+   REGLAS FUERA DE @layer utilities — workaround Tailwind v3.4 strip canónico
+   (PRP-018/021/030). Tailwind v3.4 dentro de @layer strippea multi-property
+   `transition` cuando combina reglas. Declarando fuera del layer las
+   propiedades quedan intactas en el bundle.
+
+   `.window-chrome` ya existe dentro de @layer utilities con `border-radius`,
+   `box-shadow`, `overflow: hidden` (PRP-020 canónico). Mi declaration fuera
+   del layer solo añade `transition` — las otras 3 propiedades siguen vivas
+   porque la cascade CSS evalúa cada propiedad independientemente, y las
+   reglas sin layer ganan sobre las del layer (cascade de @layer canónica).
+   La regla `html[data-shell-mode="expanded"|"fullscreen"] .window-chrome`
+   sobreescribe el `border-radius` + `box-shadow` cuando aplica.
+
+   Defensive mobile reset (@media max-width: 767.98px): el AppShell mobile
+   no monta `<Window>`, así que `.window-chrome` no existe en el DOM mobile.
+   El reset es redundante pero documenta intent y previene future regressions
+   si algún día el shell mobile montara el componente. */
+.mc-shell-viewport {
+  transition: padding 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.mc-shell-viewport.is-expanded {
+  padding: 0 !important;
+}
+.window-chrome {
+  transition:
+    border-radius 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+html[data-shell-mode="expanded"] .window-chrome,
+html[data-shell-mode="fullscreen"] .window-chrome {
+  border-radius: 0;
+  box-shadow: none;
+}
+@media (max-width: 767.98px) {
+  html[data-shell-mode="expanded"] .window-chrome,
+  html[data-shell-mode="fullscreen"] .window-chrome {
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ─── PRP-036 iter post-cierre: menu macOS native canónico ────────────────────
+   `.aios-shell-menu` aplica al `<DropdownMenuContent>` invocado desde el shell
+   del MC (cluster traffic lights del Sidebar, eventualmente cualquier futuro
+   menu canónico del Toolbar / Sidebar / context). Diseño byte-exact con el
+   patrón vivo `.aios-chat-select-content` (PRP-031 polish iter5b) que el
+   operador validó visualmente como look "Popover" macOS canónico: glass
+   denso con alpha 0.96 + blur 60 + saturate 200% (NO transparente al punto
+   de ver el contenido detrás claramente — convención macOS para menus
+   nativos del sistema), border thin separator, radius 10px, shadow
+   elevada apilada (16px+40px outer dimensional + 6px+16px inner refinada),
+   inset highlight sutil top.
+
+   Items radio con padding 0.4rem 0.55rem + gap 0.55rem + radius 0.4rem
+   (matches chat select). Checkmark del Radix RadioItem ya viene cableado
+   por el primitive vendored (el `<Check />` icon aparece a la izquierda del
+   activo). Active state suma bg `color-mix(in oklab, var(--accent) 12%, transparent)`
+   (azul Apple tint sutil que pinta sobre el material glass). Hover/highlighted
+   state suma bg `color-mix(in oklab, var(--label-primary) 6%, transparent)`
+   (dim consistente).
+
+   FUERA de @layer utilities por convención canónica (workaround Tailwind
+   v3.4 strip — los box-shadow apilados, backdrop-filter y color-mix viven
+   intactos solo si las reglas están sin layer). */
+.aios-shell-menu {
+  min-width: 12rem !important;
+  border-radius: 0.625rem !important;
+  padding: 0.3rem !important;
+  border: 1px solid var(--separator) !important;
+  background: rgba(245, 245, 245, 0.96) !important;
+  backdrop-filter: blur(60px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(60px) saturate(200%) !important;
+  box-shadow:
+    0 0.5px 0 rgba(255, 255, 255, 0.06) inset,
+    0 16px 40px -8px rgba(0, 0, 0, 0.55),
+    0 6px 16px -4px rgba(0, 0, 0, 0.35) !important;
+}
+[data-theme="dark"] .aios-shell-menu {
+  background: rgba(28, 28, 30, 0.96) !important;
+  box-shadow:
+    0 0.5px 0 rgba(255, 255, 255, 0.08) inset,
+    0 16px 40px -8px rgba(0, 0, 0, 0.6),
+    0 6px 16px -4px rgba(0, 0, 0, 0.4) !important;
+}
+.aios-shell-menu [role="menuitemradio"],
+.aios-shell-menu [role="menuitem"] {
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem !important;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+/* Hide el ItemIndicator del Radix RadioItem vendored — el primitive
+   shadcn renderea `<span absolute left-2 ...><Circle h-2 w-2 /></span>`
+   con `pl-8` en el item para reservar espacio. Como mi CSS overrida el
+   padding (`padding: 0.4rem 0.55rem !important`), el span absolute queda
+   tapando el texto. La señal "activo" la da el bg accent tint del item
+   `[data-state="checked"]` ya declarado abajo — el checkmark Radix es
+   redundante para esta UI. */
+.aios-shell-menu [role="menuitemradio"] > span:first-child {
+  display: none !important;
+}
+
+/* ─── PRP-037: Search rightbar edge-anchored squircle macOS ───────────────────
+   El `<Modal placement='sheet-right'>` (consumido por Search rightbar PRP-034
+   + cualquier sheet-right futuro) renderea via createPortal a `document.body`
+   con `position: fixed` ocupando viewport completo. El operador detectó
+   empíricamente que el iter previo del 2026-05-15 (que añadía padding 24 +
+   border-radius 26 en las 4 esquinas) producía "esquinas marcadas
+   translúcidas" feels "ventana dentro de ventana" en lugar del drawer macOS
+   canónico esperado.
+
+   Fix canónico macOS (Finder, Notes, Mail right-side sheets):
+   sheet pegado al borde DERECHO del viewport (cero padding entre panel y
+   bordes derecho / top / bottom), con SOLO las 2 esquinas izquierdas
+   redondeadas tipo squircle macOS 26 (var(--r-window) = 26px). Las 2 esquinas
+   derechas quedan flush con el borde (border-radius 0). Aplicable a TODOS los
+   shell modes (floating, expanded, fullscreen) — el sheet right-side es la
+   misma convención visual independiente del estado de la Window padre.
+
+   Bloque vive FUERA de @layer utilities (workaround Tailwind v3.4 strip
+   canónico PRP-018/021/030/036). La animación `mc-drawer-in-right` sigue
+   funcionando byte-exact — la regla solo ajusta border-radius del panel
+   (cero impacto sobre transform/opacity de la anim). */
+.mc-sheet-right-panel {
+  border-radius: var(--r-window) 0 0 var(--r-window);
+  /* PRP-037 iter final post-feedback operador 2026-05-16: revertidos iters
+     #3 (panel SOLID opaco override), #4 (hairline inset en lugar de sombra
+     direccional) y #5 (padding wrapper top+bottom+right del container). El
+     operador pidió explícitamente "regresa el blur, sombras, que esté bien
+     colocado a la derecha" tras ver las 3 iteraciones sobre-corregidas.
+     Estado final: panel edge-anchored al borde DERECHO del VIEWPORT (no
+     dentro de la Window flotante) con `liquid-glass-thick` activo
+     (background `rgba(28,28,30,0.97)` 3% transparent + `backdrop-filter:
+     saturate(200%) blur(56px)` agresivo, byte-exact del DS macOS 26) y
+     sombra direccional `-12px 0 32px rgba(0,0,0,0.35)` proyectada hacia la
+     izquierda. La única override de esta regla CSS es el border-radius
+     asimétrico (top-left + bottom-left squircle 26px / top-right +
+     bottom-right flush al borde del viewport). El operador acepta el
+     wallpaper visible a través del clip del border-radius como design
+     feature, no como bug — quería que el panel se sintiera como sheet macOS
+     canónico flotante sobre el viewport (no integrado al chrome de la
+     Window). */
+}
+.aios-shell-menu [role="menuitemradio"][data-state="checked"] {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--label-primary);
+}
+.aios-shell-menu [role="menuitemradio"]:hover:not([data-state="checked"]),
+.aios-shell-menu [role="menuitemradio"][data-highlighted],
+.aios-shell-menu [role="menuitem"]:hover,
+.aios-shell-menu [role="menuitem"][data-highlighted] {
+  background: color-mix(in oklab, var(--label-primary) 6%, transparent);
+}

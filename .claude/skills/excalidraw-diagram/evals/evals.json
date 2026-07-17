@@ -1,0 +1,41 @@
+{
+  "$schema": "https://platform.claude.com/schemas/agent-skills/evals-v1.json",
+  "skill": "excalidraw-diagram",
+  "evals": [
+    {
+      "id": "diagrama-arquitectura-aios",
+      "skills": ["excalidraw-diagram"],
+      "query": "Hazme un diagrama de la arquitectura de AIOS con los 3 pilares (Mission Control, Agent Server, Skills/Memory).",
+      "expected_behavior": [
+        "La skill se activa por el trigger 'diagrama' + 'arquitectura'.",
+        "Lee `references/json-schema.md` y `references/element-templates.md` antes de componer el JSON.",
+        "Genera 3 columnas (rectángulos con texto) — Mission Control / Agent Server / Skills+Memory — con la paleta canónica.",
+        "Cada shape con texto lleva `boundElements` + un text element con `containerId`.",
+        "Arrows conectan los pilares con `startBinding`/`endBinding` apuntando a los IDs reales.",
+        "Guarda el `.excalidraw` y dispara el render via `uv run python render_excalidraw.py`.",
+        "Devuelve el path del PNG y/o el embed markdown si lo coloca en `mission-control/public/diagrams/`."
+      ]
+    },
+    {
+      "id": "flowchart-signup",
+      "skills": ["excalidraw-diagram"],
+      "query": "Necesito un flowchart del flujo de signup magic-link de Mission Control.",
+      "expected_behavior": [
+        "La skill se activa por 'flowchart' + 'flujo'.",
+        "Compone secuencia vertical: Login form → POST signInWithOtp → Email enviado → Click magic-link → /auth/callback con ?code → Sesión creada → /dashboard.",
+        "Usa rectángulos para steps + diamond para decisión (`role=owner`?) si aplica.",
+        "Renderiza a PNG via `uv run`.",
+        "Si `uv` no está instalado, escala c1 con instrucción simple ('Instala `uv` con `brew install uv` y vuelve a presionar Run')."
+      ]
+    },
+    {
+      "id": "no-activar-mockup-ui",
+      "skills": ["excalidraw-diagram"],
+      "query": "Hazme un mockup de la UI del dashboard con cards de YOUR_COMMUNITY y revenue.",
+      "expected_behavior": [
+        "La skill NO se activa — 'mockup de UI' es trigger de `frontend-design` o `image-generation`, no de diagramas Excalidraw estructurales.",
+        "El SDK redirige al usuario a `frontend-design` (componentes Tailwind/shadcn) o `image-generation` (mockup visual estilizado), o pregunta cuál prefiere si es ambiguo."
+      ]
+    }
+  ]
+}

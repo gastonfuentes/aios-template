@@ -1,0 +1,60 @@
+{
+  "skill_name": "auth-stack",
+  "evals": [
+    {
+      "id": 1,
+      "name": "magic-link primary — happy path",
+      "prompt": "Quiero que mis alumnos puedan entrar a mi plataforma con su email.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'que mis alumnos puedan entrar' sin preguntar por método",
+        "Activa Supabase Auth con magic-link como camino primario",
+        "Genera la migración public.profiles con RLS owner-only + trigger handle_new_user",
+        "Crea src/lib/supabase/{browser,server}.ts si no existen (siguiendo references/clients.md)",
+        "Crea src/proxy.ts (Next 16 middleware) con el auth gate basado en cookies",
+        "Anuncia al operador la URL de /login y cómo testear el flow"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "password como opción secundaria",
+      "prompt": "Algunos usuarios prefieren contraseña, agrega esa opción también.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta que ya existe magic-link como primaria (no la reemplaza)",
+        "Lee references/password-flow.md para el patrón secundario",
+        "Agrega form con email+password debajo del magic-link en /login",
+        "Genera el handler signInWithPassword en server actions",
+        "Valida que el sign-up sigue cayendo en magic-link como default",
+        "Anuncia que la secundaria quedó cableada sin tocar el flujo primario"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "multi-rol con admin/creator",
+      "prompt": "Necesito que algunos usuarios sean admin y otros creator, con permisos distintos.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'multi-rol'",
+        "Agrega columna role TEXT CHECK (role IN ('admin','creator')) a profiles",
+        "Crea helper requireRole(role) según references/multi-role.md",
+        "Genera RLS policies por rol — admin ve todo, creator ve solo lo suyo",
+        "Cablea el gate en proxy.ts para rutas /admin/*",
+        "Anuncia al operador qué rutas quedan gated y cómo asignar rol a un usuario"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "membership guard con praxis_members",
+      "prompt": "Quiero que solo los miembros activos de mi comunidad your-community-slug puedan entrar.",
+      "files": [],
+      "expected_behavior": [
+        "Verifica si la tabla praxis_members existe en Supabase via list_tables antes de cablear",
+        "Si existe: implementa el guard de references/membership-guard.md",
+        "El guard verifica praxis_members.active = true antes de permitir acceso a /(app)/*",
+        "Si la tabla no existe: escala c1 explicando que el guard requiere la integración previa",
+        "Anuncia el comportamiento del guard al operador"
+      ]
+    }
+  ]
+}

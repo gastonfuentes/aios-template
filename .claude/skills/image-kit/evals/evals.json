@@ -1,0 +1,47 @@
+{
+  "skill_name": "image-kit",
+  "evals": [
+    {
+      "id": 1,
+      "name": "thumbnail desde texto — pipeline completo",
+      "prompt": "Hazme un thumbnail para mi primera landing, algo simple y profesional.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta el trigger 'thumbnail' sin preguntar por proveedor",
+        "Activa OpenRouter con Gemini 2.0 Flash como default del kit",
+        "Genera la imagen con prompt enriquecido + dimensiones 1200x630 (OG)",
+        "Comprime a WebP con sharp (quality 85)",
+        "Sube a Supabase Storage bucket 'public/thumbnails' con cleanup >24h",
+        "Retorna URL pública lista para insertar en código",
+        "Anuncia el archivo generado y dónde quedó cableado"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "avatar de producto",
+      "prompt": "Necesito un avatar redondo para representar mi producto en la sidebar.",
+      "files": [],
+      "expected_behavior": [
+        "Detecta trigger 'avatar' + contexto 'redondo'",
+        "Genera la imagen con prompt centrado + dimensiones 512x512",
+        "Aplica máscara circular en post-proceso con sharp",
+        "Sube a Supabase Storage con URL pública",
+        "Retorna el path lista para usar en Image de next/image"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "iconos PWA — set completo",
+      "prompt": "Genera el set completo de iconos PWA desde este logo.",
+      "files": ["public/logo.png"],
+      "expected_behavior": [
+        "Detecta el trigger 'iconos PWA' + 'set completo'",
+        "Lee el logo fuente",
+        "Genera 6 variantes: 192, 256, 384, 512, apple-touch-icon 180, favicon 32",
+        "Las pone en public/ con nombres canónicos del manifest",
+        "Actualiza public/manifest.json con paths nuevos si no estaban",
+        "Anuncia los 6 archivos generados"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "skill_name": "skill-creator",
+  "evals": [
+    {
+      "id": 1,
+      "name": "skill nueva desde idea — bundle completo",
+      "prompt": "Hazme una skill que envíe resúmenes diarios por WhatsApp.",
+      "files": [],
+      "expected_behavior": [
+        "Lee STYLE-GUIDE.md como contrato obligatorio antes de empezar",
+        "Decide nombre kebab-case ('whatsapp-summaries')",
+        "Genera SKILL.md con frontmatter validado: description ≤ 1024 chars en tercera persona con WHAT + WHEN + 5-7 triggers",
+        "Body imperativa ≤ 500 líneas: cuándo activar, cómo opera, outputs, casos borde",
+        "Bundle canónico: references/, scripts/, evals/evals.json (≥ 3 escenarios)",
+        "Cross-references a skills hermanas (your-community-slug-ops, content-pipeline) en sección 'Ver también'",
+        "Registra la skill en .claude/skills/SKILLS_README.md",
+        "Anuncia el path final al operador"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "extender skill existente",
+      "prompt": "Agrega capacidad de generar diagramas de secuencia a la skill excalidraw-diagram.",
+      "files": [".claude/skills/excalidraw-diagram/SKILL.md"],
+      "expected_behavior": [
+        "Detecta que es extensión, no creación nueva",
+        "Lee SKILL.md existente sin reemplazarla",
+        "Agrega nuevo trigger en description (verificando que no rompe el límite 1024 chars)",
+        "Agrega nueva sección al body con el algoritmo de secuencia",
+        "Agrega 1 nuevo escenario a evals/evals.json (manteniendo los anteriores)",
+        "Validación pre-merge: wc -l SKILL.md ≤ 500, evals parsean, references/ flat"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "skill custom para nicho del operador",
+      "prompt": "Quiero una skill para gestionar mi catálogo de cursos en Skool desde el agente.",
+      "files": [],
+      "expected_behavior": [
+        "Reconoce que es skill AIOS-flavored (nicho operador YOUR_COMMUNITY)",
+        "Decide nombre 'skool-courses-ops'",
+        "Genera bundle con voz canónica Praxis (tercera persona, español)",
+        "Frontmatter declara allowed-tools incluyendo MCPs relevantes (claude_ai_Supabase para community_metrics)",
+        "Cross-references a your-community-slug-ops como hermana",
+        "evals.json usa schema $schema 'https://platform.claude.com/schemas/agent-skills/evals-v1.json' (formato AIOS-flavored)",
+        "Anuncia al operador qué triggers naturales la disparan"
+      ]
+    }
+  ]
+}
