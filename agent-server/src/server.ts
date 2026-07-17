@@ -32,7 +32,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { timingSafeEqual } from 'crypto'
 import { listSessions, getSessionMessages } from '@anthropic-ai/claude-agent-sdk'
 import { readEnvFile } from './env.js'
-import { MC_SERVER_PORT, PROJECT_ROOT } from './config.js'
+import { MC_SERVER_PORT, MC_SERVER_HOST, PROJECT_ROOT } from './config.js'
 import {
   getAvailableModels,
   isSdkPrewarmed,
@@ -1085,8 +1085,8 @@ export function startMCServer(): void {
     })
   })
 
-  httpServer.listen(MC_SERVER_PORT, '127.0.0.1', () => {
-    logger.info({ port: MC_SERVER_PORT, origins: ALLOWED_ORIGINS }, 'MC web server listening on 127.0.0.1')
+  httpServer.listen(MC_SERVER_PORT, MC_SERVER_HOST, () => {
+    logger.info({ port: MC_SERVER_PORT, host: MC_SERVER_HOST, origins: ALLOWED_ORIGINS }, 'MC web server listening')
   })
 }
 

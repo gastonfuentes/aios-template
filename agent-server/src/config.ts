@@ -33,8 +33,12 @@ export const TYPING_REFRESH_MS = 4000
 
 // HTTP server (read aquí para tener defaults limpios; required vars viven
 // en validateRequiredEnv del env.ts).
-const httpEnv = readEnvFile(['MC_SERVER_PORT', 'LOG_LEVEL', 'SCHEDULER_TZ'])
+const httpEnv = readEnvFile(['MC_SERVER_PORT', 'MC_SERVER_HOST', 'LOG_LEVEL', 'SCHEDULER_TZ'])
 export const MC_SERVER_PORT = parseInt(httpEnv['MC_SERVER_PORT'] ?? '3099', 10)
+// Bind host. Default 127.0.0.1 preserves the local-laptop security posture (no
+// LAN exposure). In a container behind Traefik, set MC_SERVER_HOST=0.0.0.0 so the
+// reverse proxy on the Docker network can reach the daemon.
+export const MC_SERVER_HOST = httpEnv['MC_SERVER_HOST'] ?? '127.0.0.1'
 export const LOG_LEVEL = httpEnv['LOG_LEVEL'] ?? 'info'
 // Brief manda Guadalajara como default explícito (NO 'UTC' como el template).
 export const SCHEDULER_TZ = httpEnv['SCHEDULER_TZ'] ?? 'America/Mexico_City'
