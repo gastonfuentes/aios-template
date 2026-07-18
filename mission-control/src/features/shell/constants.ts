@@ -5,6 +5,7 @@ export type SidebarIconName =
   | 'Clock'
   | 'Activity'
   | 'PenSquare'
+  | 'Truck'
 
 export type SidebarItemDef = {
   readonly label: string
@@ -39,6 +40,7 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDef[] = [
       // (chat con agent, agente principal del operador). Ruta `/ai-agent`.
       { label: 'AI Agent', href: '/ai-agent', icon: 'Bot' },
       { label: 'Draw', href: '/draw', icon: 'PenSquare' },
+      { label: 'Proveedores', href: '/proveedores', icon: 'Truck' },
     ],
   },
   {
@@ -60,6 +62,7 @@ export const TOOLBAR_TITLES: Record<string, string> = {
   '/scheduled': 'Scheduled',
   '/ops': 'Ops',
   '/draw': 'Draw',
+  '/proveedores': 'Proveedores',
 }
 
 export function titleForPath(pathname: string): string {

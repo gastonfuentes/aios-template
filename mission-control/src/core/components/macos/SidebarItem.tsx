@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Bot, Settings, Clock, Activity, PenSquare } from 'lucide-react'
+import { LayoutDashboard, Bot, Settings, Clock, Activity, PenSquare, Truck } from 'lucide-react'
 import type { SidebarIconName } from '@/features/shell/constants'
 
 const ICONS: Record<SidebarIconName, typeof LayoutDashboard> = {
@@ -12,6 +12,7 @@ const ICONS: Record<SidebarIconName, typeof LayoutDashboard> = {
   Clock,
   Activity,
   PenSquare,
+  Truck,
 }
 
 export function SidebarItem({
