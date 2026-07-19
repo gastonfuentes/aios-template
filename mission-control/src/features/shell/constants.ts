@@ -6,6 +6,18 @@ export type SidebarIconName =
   | 'Activity'
   | 'PenSquare'
   | 'Truck'
+  // Gannet demo modules.
+  | 'BarChart3'
+  | 'Building2'
+  | 'FileText'
+  | 'FolderKanban'
+  | 'ClipboardList'
+  | 'ShoppingCart'
+  | 'Package'
+  | 'Wrench'
+  | 'HardHat'
+  | 'ReceiptText'
+  | 'FolderArchive'
 
 export type SidebarItemDef = {
   readonly label: string
@@ -30,6 +42,18 @@ export type SidebarSectionDef = {
  * "preferencias del sistema" siempre al final del menú).
  *
  * El shape multi-sección ya estaba soportado desde PRP-020.
+ *
+ * Demo congreso minero (día 2): se agrega la sección "Gannet OS" con los doce
+ * módulos construidos. El orden sigue el recorrido de la demo — del tablero
+ * ejecutivo al ciclo comercial (clientes → cotizaciones → proyectos → OT), luego
+ * abastecimiento y recursos, y finalmente administración. El módulo 13 (IA) se
+ * incorpora el día 4.
+ *
+ * `/proveedores` sale del menú por decisión documentada en
+ * `docs/demo-congreso-minero.md`: contradice la narrativa nueva (Andes es el
+ * proveedor, no el cliente que mira a sus proveedores), pero borrarlo cuesta
+ * tiempo que la semana no tiene. La ruta y su API siguen existiendo y
+ * funcionando; solo deja de estar en la navegación.
  */
 export const SIDEBAR_SECTIONS: readonly SidebarSectionDef[] = [
   {
@@ -40,7 +64,23 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDef[] = [
       // (chat con agent, agente principal del operador). Ruta `/ai-agent`.
       { label: 'AI Agent', href: '/ai-agent', icon: 'Bot' },
       { label: 'Draw', href: '/draw', icon: 'PenSquare' },
-      { label: 'Proveedores', href: '/proveedores', icon: 'Truck' },
+    ],
+  },
+  {
+    label: 'Gannet OS',
+    items: [
+      { label: 'Dashboard ejecutivo', href: '/dashboard-ejecutivo', icon: 'BarChart3' },
+      { label: 'Clientes', href: '/clientes', icon: 'Building2' },
+      { label: 'Cotizaciones', href: '/cotizaciones', icon: 'FileText' },
+      { label: 'Proyectos', href: '/proyectos', icon: 'FolderKanban' },
+      { label: 'Órdenes de trabajo', href: '/ordenes-trabajo', icon: 'ClipboardList' },
+      { label: 'Compras', href: '/compras', icon: 'ShoppingCart' },
+      { label: 'Stock', href: '/stock', icon: 'Package' },
+      { label: 'Equipos', href: '/equipos', icon: 'Wrench' },
+      { label: 'Flota', href: '/flota', icon: 'Truck' },
+      { label: 'Recursos humanos', href: '/rrhh', icon: 'HardHat' },
+      { label: 'Facturación', href: '/facturacion', icon: 'ReceiptText' },
+      { label: 'Documentación', href: '/documentacion', icon: 'FolderArchive' },
     ],
   },
   {
@@ -62,7 +102,21 @@ export const TOOLBAR_TITLES: Record<string, string> = {
   '/scheduled': 'Scheduled',
   '/ops': 'Ops',
   '/draw': 'Draw',
+  // Fuera del menú, pero la ruta sigue viva y necesita título en el toolbar.
   '/proveedores': 'Proveedores',
+  // Módulos de la demo Gannet OS.
+  '/dashboard-ejecutivo': 'Dashboard ejecutivo',
+  '/clientes': 'Clientes',
+  '/cotizaciones': 'Cotizaciones',
+  '/proyectos': 'Proyectos',
+  '/ordenes-trabajo': 'Órdenes de trabajo',
+  '/compras': 'Compras',
+  '/stock': 'Stock y almacenes',
+  '/equipos': 'Equipos y herramientas',
+  '/flota': 'Flota de vehículos',
+  '/rrhh': 'Recursos humanos',
+  '/facturacion': 'Facturación y cobranzas',
+  '/documentacion': 'Documentación',
 }
 
 export function titleForPath(pathname: string): string {

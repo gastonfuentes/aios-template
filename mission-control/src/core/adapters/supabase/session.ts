@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isEmailAllowed } from '@/core/config/auth'
+import { isGannetPublicRoute } from '@/features/gannet/routes'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -32,7 +33,11 @@ export async function updateSession(request: NextRequest) {
 
   // /auth/callback handles the magic-link exchange — must be public.
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/check-email')
-  const isPublicRoute = isAuthRoute || pathname.startsWith('/auth/callback')
+  // The twelve Gannet demo modules run without a session for the mining
+  // congress kiosk: no login means no session can expire mid-event. The list is
+  // exhaustive and explicit — see `@/features/gannet/routes`.
+  const isPublicRoute =
+    isAuthRoute || pathname.startsWith('/auth/callback') || isGannetPublicRoute(pathname)
 
   if (!isPublicRoute && !user) {
     const loginUrl = new URL('/login', request.url)

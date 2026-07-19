@@ -19,6 +19,11 @@
 
 BEGIN;
 
+-- Defer validation of SQL function bodies: helpers like public.is_owner() are
+-- defined before the tables they reference (e.g. public.profiles). This is the
+-- canonical Supabase approach for self-contained schema dumps.
+SET LOCAL check_function_bodies = false;
+
 -- ============================================================================
 -- EXTENSIONES
 -- ============================================================================
@@ -141,9 +146,13 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   updated_at        timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.agents
-  ADD CONSTRAINT IF NOT EXISTS fk_agents_current_task
-  FOREIGN KEY (current_task_id) REFERENCES public.tasks(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_agents_current_task') THEN
+    ALTER TABLE public.agents
+      ADD CONSTRAINT fk_agents_current_task
+      FOREIGN KEY (current_task_id) REFERENCES public.tasks(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.task_assignees (
   id          uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
