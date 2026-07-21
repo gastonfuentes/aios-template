@@ -15,11 +15,13 @@
  */
 
 import { useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { X } from 'lucide-react'
 import { DataTable, type Column } from '@/core/ui/table'
 import { ModuleShell } from '@/features/gannet/components/ModuleShell'
 import { Pill } from '@/features/gannet/components/Pill'
 import { StatCard, StatGrid } from '@/features/gannet/components/StatCard'
-import { useViews2 } from '@/features/gannet/useView'
+import { useView } from '@/features/gannet/useView'
 import {
   WORK_ORDER_PRIORITY,
   WORK_ORDER_STATE,
@@ -180,10 +182,49 @@ const COLUMNS: readonly Column<OtOperativa>[] = [
 ]
 
 export function WorkOrdersModule() {
-  const { primary: orders, secondary: load, loading, error, reload } = useViews2<
-    OtOperativa,
-    OtCargaOperativa
-  >('gd_ot_operativas', 'gd_ot_carga_operativa')
+  // `?cliente=<id>` is the drill-down target of the executive client ranking.
+  // It is pushed to the server as a `cliente_id` filter — the API route honours
+  // it because `gd_ot_operativas` declares that column in its `filters` array.
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const clientParam = searchParams.get('cliente') ?? ''
+
+  // The drill-down is driven by local state seeded from the query string rather
+  // than by the query string directly. When this page is opened as a hard load
+  // on `?cliente=<id>` — a reload or a deep link — a client-side `router.push`
+  // back to `/ordenes-trabajo` does not change the URL, which used to leave the
+  // presenter locked inside the filtered grid with no way out on stage. Holding
+  // the filter in state makes clearing it independent of the router; the push
+  // below is kept as best-effort URL hygiene.
+  const [clientId, setClientId] = useState(clientParam)
+  const [syncedParam, setSyncedParam] = useState(clientParam)
+  if (syncedParam !== clientParam) {
+    // Adjusting state during render — a new `?cliente=` (a fresh drill-down
+    // from the executive ranking) reopens the filter without an effect pass.
+    setSyncedParam(clientParam)
+    setClientId(clientParam)
+  }
+
+  const clearClient = () => {
+    setClientId('')
+    router.push('/ordenes-trabajo')
+  }
+
+  const ordersView = useView<OtOperativa>('gd_ot_operativas', {
+    params: { cliente_id: clientId },
+  })
+  const loadView = useView<OtCargaOperativa>('gd_ot_carga_operativa')
+
+  const orders = ordersView.rows
+  const load = loadView.rows
+  const loading = ordersView.loading || loadView.loading
+  const error = ordersView.error ?? loadView.error
+  const reload = () => {
+    ordersView.reload()
+    loadView.reload()
+  }
+
+  const clientName = clientId === '' ? null : (orders[0]?.cliente ?? null)
 
   const [stateFilter, setStateFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
@@ -198,9 +239,25 @@ export function WorkOrdersModule() {
     [orders, stateFilter, priorityFilter],
   )
 
-  // Summary comes from the aggregate view, not from the loaded rows: the
-  // aggregate is authoritative and stays correct regardless of the row cap.
+  // Summary normally comes from the aggregate view, which is authoritative and
+  // stays correct regardless of the row cap. Under a client drill-down the
+  // aggregate is company-wide and would contradict the grid below it, so the
+  // figures are derived from the (already server-filtered) rows instead.
   const summary = useMemo(() => {
+    if (clientId !== '') {
+      let open = 0
+      let late = 0
+      let executing = 0
+      let billable = 0
+      for (const order of orders) {
+        if (order.esta_abierta) open += 1
+        if (order.estado === 'en_ejecucion') executing += 1
+        if (order.esta_atrasada) late += 1
+        billable += order.monto_facturable_ars ?? 0
+      }
+      return { open, late, executing, billable }
+    }
+
     let open = 0
     let late = 0
     let executing = 0
@@ -212,7 +269,7 @@ export function WorkOrdersModule() {
       billable += bucket.monto_facturable_ars ?? 0
     }
     return { open, late, executing, billable }
-  }, [load])
+  }, [load, orders, clientId])
 
   return (
     <ModuleShell
@@ -221,6 +278,19 @@ export function WorkOrdersModule() {
       loading={loading}
       error={error}
       onReload={reload}
+      actions={
+        clientId === '' ? undefined : (
+          <button
+            type="button"
+            onClick={clearClient}
+            className="mc-interactive inline-flex h-11 items-center gap-2 rounded-control px-4 text-caption1"
+            style={{ background: 'var(--fill-secondary)', color: 'var(--label-primary)' }}
+          >
+            <X size={14} strokeWidth={2} aria-hidden />
+            {`Cliente: ${clientName ?? clientId}`}
+          </button>
+        )
+      }
     >
       <StatGrid>
         <StatCard
@@ -318,7 +388,7 @@ function FilterSelect({
       aria-label={`Filtrar por ${label.toLocaleLowerCase('es-AR')}`}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="mc-interactive-soft rounded-control px-2 py-1.5 text-caption1 outline-none"
+      className="mc-interactive-soft h-11 rounded-control px-3 text-caption1 outline-none"
       style={{
         background: 'var(--fill-secondary)',
         color: value ? 'var(--label-primary)' : 'var(--label-secondary)',

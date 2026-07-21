@@ -19,7 +19,6 @@ import { useViews2 } from '@/features/gannet/useView'
 import { EQUIPMENT_CATEGORY, EQUIPMENT_STATE, describe } from '@/features/gannet/labels'
 import {
   EMPTY,
-  formatArs,
   formatArsCompact,
   formatDate,
   formatDaysRemaining,
@@ -118,7 +117,7 @@ const EQUIPMENT_COLUMNS: readonly Column<Equipo>[] = [
     hideBelow: 'xl',
     render: (row) =>
       row.es_alquilable ? (
-        <span className="tabular-nums">{formatArs(row.tarifa_dia_ars)}</span>
+        <span className="tabular-nums">{formatArsCompact(row.tarifa_dia_ars)}</span>
       ) : (
         <span style={{ color: 'var(--label-tertiary)' }}>No alquilable</span>
       ),
@@ -266,9 +265,15 @@ export function EquipmentModule() {
       </StatGrid>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="parque">Parque de equipos</TabsTrigger>
-          <TabsTrigger value="disponibilidad">Disponibilidad por categoría</TabsTrigger>
+        {/* Sized for a finger: the demo runs on a tablet, and the default
+            shadcn tab strip is 28px tall. */}
+        <TabsList className="h-12">
+          <TabsTrigger className="h-10 px-4" value="parque">
+            Parque de equipos
+          </TabsTrigger>
+          <TabsTrigger className="h-10 px-4" value="disponibilidad">
+            Disponibilidad por categoría
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="parque" className="mt-3">

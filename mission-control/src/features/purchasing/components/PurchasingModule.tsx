@@ -246,9 +246,15 @@ export function PurchasingModule() {
       </StatGrid>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="ordenes">Órdenes de compra</TabsTrigger>
-          <TabsTrigger value="proveedores">Desempeño de proveedores</TabsTrigger>
+        {/* Sized for a finger: the demo runs on a tablet, and the default
+            shadcn tab strip is 28px tall. */}
+        <TabsList className="h-12">
+          <TabsTrigger className="h-10 px-4" value="ordenes">
+            Órdenes de compra
+          </TabsTrigger>
+          <TabsTrigger className="h-10 px-4" value="proveedores">
+            Desempeño de proveedores
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="ordenes" className="mt-3">

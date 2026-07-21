@@ -679,8 +679,8 @@ SELECT
   || (ARRAY['A','B','C','D','E','F','G','H','J','K','L','M','N','P','R','S','T','V'])
     [1 + gannet_demo.sem_h(v.i, 604) % 18] AS dominio,
   v.tipo,
-  v.marca,
-  v.modelo,
+  split_part(v.marca_modelo, '|', 1) AS marca,
+  split_part(v.marca_modelo, '|', 2) AS modelo,
   2016 + (gannet_demo.sem_h(v.i, 605) % 10)::int,
   v.km_base + (gannet_demo.sem_h(v.i, 606) % 180000)::int,
   v.estado,
@@ -703,21 +703,67 @@ FROM (
       WHEN g.i <= 42 THEN 'hormigonera' WHEN g.i <= 44 THEN 'cisterna'
       ELSE 'ambulancia'
     END AS tipo,
+    -- Brand and model are drawn as ONE indivisible pair, never as two
+    -- independent draws. Drawing them separately produced impossible units
+    -- ("Volvo Atego", "Grove Arocs"), which any fleet manager spots at a
+    -- glance and reads as proof that the whole dataset is fabricated.
+    -- The catalogue below is restricted to units actually sold and operated
+    -- in Argentine mining service fleets, and each pair belongs together.
+    -- Encoded as 'brand|model' and split in the outer SELECT so the pair can
+    -- never be broken by a later edit.
     CASE
-      WHEN g.i <= 12 THEN (ARRAY['Toyota','Ford','Volkswagen','Nissan'])[1 + gannet_demo.sem_h(g.i, 609) % 4]
-      WHEN g.i <= 28 THEN (ARRAY['Scania','Volvo','Iveco','Mercedes-Benz'])[1 + gannet_demo.sem_h(g.i, 609) % 4]
-      WHEN g.i <= 32 THEN (ARRAY['Mercedes-Benz','Iveco'])[1 + gannet_demo.sem_h(g.i, 609) % 2]
-      WHEN g.i <= 38 THEN (ARRAY['Renault','Fiat','Peugeot'])[1 + gannet_demo.sem_h(g.i, 609) % 3]
-      ELSE (ARRAY['Grove','Palfinger','Mercedes-Benz','Iveco'])[1 + gannet_demo.sem_h(g.i, 609) % 4]
-    END AS marca,
-    CASE
-      WHEN g.i <= 12 THEN (ARRAY['Hilux 4x4 DC','Ranger 4x4 DC','Amarok V6 4x4','Frontier 4x4'])[1 + gannet_demo.sem_h(g.i, 610) % 4]
-      WHEN g.i <= 22 THEN (ARRAY['P360 6x4','FMX 440','Tector 240E28','Atego 1726'])[1 + gannet_demo.sem_h(g.i, 610) % 4]
-      WHEN g.i <= 28 THEN (ARRAY['R450 6x2','FH 460','Stralis 480','Actros 2045'])[1 + gannet_demo.sem_h(g.i, 610) % 4]
-      WHEN g.i <= 32 THEN (ARRAY['Sprinter 21+1','Daily 50C17'])[1 + gannet_demo.sem_h(g.i, 610) % 2]
-      WHEN g.i <= 38 THEN (ARRAY['Kangoo Furgón','Fiorino Fire','Partner Confort'])[1 + gannet_demo.sem_h(g.i, 610) % 3]
-      ELSE (ARRAY['RT540E','PK 23002','Arocs 3345','Trakker 380'])[1 + gannet_demo.sem_h(g.i, 610) % 4]
-    END AS modelo,
+      -- 1..12 camioneta — pickups
+      WHEN g.i <= 12 THEN (ARRAY[
+        'Toyota|Hilux 4x4 DC',
+        'Ford|Ranger 4x4 DC',
+        'Volkswagen|Amarok V6 4x4',
+        'Nissan|Frontier 4x4'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 4]
+      -- 13..22 camion — rigid trucks
+      WHEN g.i <= 22 THEN (ARRAY[
+        'Mercedes-Benz|Atego 1726',
+        'Iveco|Tector 240E28',
+        'Scania|P360 6x4',
+        'Volvo|VM 330',
+        'Ford|Cargo 1723',
+        'Volkswagen|Constellation 17.280'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 6]
+      -- 23..28 tractor_semi — road tractors
+      WHEN g.i <= 28 THEN (ARRAY[
+        'Scania|R450 6x2',
+        'Volvo|FH 460',
+        'Iveco|Stralis 480',
+        'Mercedes-Benz|Actros 2045'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 4]
+      -- 29..32 minibus — crew transport
+      WHEN g.i <= 32 THEN (ARRAY[
+        'Mercedes-Benz|Sprinter 21+1',
+        'Iveco|Daily 50C17'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 2]
+      -- 33..38 utilitario — light vans
+      WHEN g.i <= 38 THEN (ARRAY[
+        'Renault|Kangoo Furgón',
+        'Fiat|Fiorino Fire',
+        'Peugeot|Partner Confort'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 3]
+      -- 39..40 grua — cranes
+      WHEN g.i <= 40 THEN (ARRAY[
+        'Grove|RT540E',
+        'Palfinger|PK 23002'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 2]
+      -- 41..42 hormigonera — concrete mixers
+      WHEN g.i <= 42 THEN (ARRAY[
+        'Mercedes-Benz|Arocs 3345',
+        'Iveco|Trakker 380'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 2]
+      -- 43..44 cisterna — tankers
+      WHEN g.i <= 44 THEN (ARRAY[
+        'Scania|G410 6x4',
+        'Ford|Cargo 1729'
+      ])[1 + gannet_demo.sem_h(g.i, 609) % 2]
+      -- 45 ambulancia
+      ELSE 'Mercedes-Benz|Sprinter 415'
+    END AS marca_modelo,
     CASE WHEN g.i <= 12 THEN 40000 WHEN g.i <= 32 THEN 120000 ELSE 25000 END AS km_base,
     CASE
       WHEN gannet_demo.sem_h(g.i, 611) % 100 < 9  THEN 'en_mantenimiento'
@@ -1072,16 +1118,11 @@ OVERRIDING SYSTEM VALUE
 SELECT
   d.i,
   'PRY-' || to_char(d.ini_plan, 'YYYY') || '-' || lpad(d.i::text, 3, '0'),
-  (ARRAY['Mantenimiento integral de planta',
-         'Obra civil de infraestructura',
-         'Montaje eléctrico de media tensión',
-         'Instrumentación y control de proceso',
-         'Montaje de estructuras y cañerías',
-         'Transporte de insumos y personal',
-         'Alquiler de maquinaria con operador',
-         'Movimiento de suelos y plataformas',
-         'Operación integral de campamento',
-         'Limpieza técnica industrial'])[d.srv_idx] || ' — ' || fa.nombre,
+  -- PROVISIONAL, igual que el titulo de las ordenes de trabajo: el nombre
+  -- definitivo lo escribe gannet_demo.aplicar_catalogo_textos() en el bloque
+  -- 25.b. Con un solo nombre por servicio, diez de los ochenta proyectos
+  -- quedaban con el nombre repetido.
+  '(pendiente de catalogo) ' || s.nombre || ' — ' || fa.nombre,
   d.cliente_id,
   d.faena_id,
   s.id,
@@ -1214,20 +1255,13 @@ SELECT
   resp.id,
   veh.id,
   equ.id,
-  (ARRAY['Mantenimiento preventivo de equipos de planta',
-         'Ejecución de fundaciones y platea de hormigón',
-         'Tendido y conexionado de tablero de media tensión',
-         'Calibración y lazo de control de instrumentos',
-         'Soldadura y montaje de cañería de proceso',
-         'Traslado de insumos y personal a faena',
-         'Provisión de maquinaria con operador',
-         'Excavación y nivelación de plataforma',
-         'Operación de servicios generales de campamento',
-         'Limpieza técnica de tanques y áreas de proceso'])[f.srv_idx]
-    || ' — ' || fa.nombre,
-  'Trabajo ejecutado por Andes Servicios Integrales en el marco del servicio de '
-    || sv.nombre || '. Alcance acordado con el cliente y ejecutado bajo los '
-    || 'procedimientos de seguridad vigentes en faena.',
+  -- PROVISIONAL. El titulo y la descripcion definitivos los escribe
+  -- gannet_demo.aplicar_catalogo_textos() en el bloque 25.b, tomandolos de
+  -- gannet_demo.catalogo_textos. No agregar aca una lista de titulos: hubo una
+  -- sola por servicio y produjo una grilla que se leia copiada y pegada.
+  -- El bloque 25.b verifica que ningun texto provisional sobreviva.
+  '(pendiente de catalogo) ' || sv.nombre || ' — ' || fa.nombre,
+  '(pendiente de catalogo)',
   f.tipo,
   f.prioridad,
   f.estado,
@@ -1634,7 +1668,9 @@ SELECT
   row_number() OVER (ORDER BY x.cotizacion_id, x.j),
   x.cotizacion_id,
   x.servicio_id,
-  x.nombre_servicio || ' según alcance acordado con el cliente',
+  -- PROVISIONAL: lo reemplaza gannet_demo.aplicar_catalogo_textos() en 25.b.
+  -- Esta linea producia 10 descripciones distintas para 1.448 renglones.
+  '(pendiente de catalogo) ' || x.nombre_servicio,
   x.cantidad,
   x.unidad,
   x.precio,
@@ -2541,6 +2577,110 @@ UPDATE gannet_demo.documentos
 SET creado_en = fecha_emision::timestamptz + INTERVAL '12 hours';
 
 -- =============================================================================
+-- 25.b CATALOGO DE TEXTOS
+-- Titulos y descripciones de orden de trabajo, nombres de proyecto y
+-- descripciones de renglon de cotizacion.
+--
+-- La logica NO vive aca. Vive en gannet_demo.aplicar_catalogo_textos(), que
+-- crea la migracion 20260720000001 junto con la tabla gannet_demo.catalogo_textos.
+-- Ese es el punto: la migracion y este generador tienen que producir exactamente
+-- los mismos textos, y la unica forma de garantizarlo sin confiar en que alguien
+-- edite dos copias a la vez es que haya una sola copia.
+--
+-- Las migraciones corren siempre antes que este generador, tanto en el VPS como
+-- en el arranque local desde cero, asi que la funcion existe. Sobrevive a la
+-- limpieza del bloque 26, que solo elimina `sem_*` y las tablas `tmp_*`.
+-- =============================================================================
+
+DO $$
+BEGIN
+  IF to_regprocedure('gannet_demo.aplicar_catalogo_textos()') IS NULL THEN
+    RAISE EXCEPTION
+      'Falta gannet_demo.aplicar_catalogo_textos(). Aplicar las migraciones de supabase/migrations/ antes de correr este generador.';
+  END IF;
+END $$;
+
+SELECT gannet_demo.aplicar_catalogo_textos();
+
+-- Ningun texto provisional puede sobrevivir. Si la funcion no cubrio alguna
+-- fila, es preferible abortar la siembra que servir "(pendiente de catalogo)"
+-- en la grilla que se proyecta en el congreso.
+DO $$
+DECLARE
+  n bigint;
+BEGIN
+  SELECT (SELECT COUNT(*) FROM gannet_demo.ordenes_trabajo
+            WHERE titulo LIKE '(pendiente de catalogo)%'
+               OR descripcion LIKE '(pendiente de catalogo)%')
+       + (SELECT COUNT(*) FROM gannet_demo.proyectos
+            WHERE nombre LIKE '(pendiente de catalogo)%')
+       + (SELECT COUNT(*) FROM gannet_demo.cotizacion_items
+            WHERE descripcion LIKE '(pendiente de catalogo)%')
+  INTO n;
+
+  IF n > 0 THEN
+    RAISE EXCEPTION '% filas quedaron con texto provisional del catalogo.', n;
+  END IF;
+END $$;
+
+-- =============================================================================
+-- 25.c MODELO DE FACTURACION MENSUAL
+-- Da forma a la curva de "Evolucion de facturacion", que es el primer grafico
+-- del panel ejecutivo y la pantalla con la que abre la demo.
+--
+-- Igual que 25.b, la logica NO vive aca: vive en
+-- gannet_demo.aplicar_modelo_facturacion(), que crea la migracion
+-- 20260720000002 junto con gannet_demo.modelo_facturacion y su perfil
+-- estacional. Una sola copia, para que el VPS y el arranque local desde cero
+-- produzcan exactamente la misma curva.
+--
+-- Corre DESPUES de 25.a, que fija `creado_en` a partir de la fecha de emision:
+-- la funcion mueve fechas de emision, asi que reescribe tambien el `creado_en`
+-- de los comprobantes que toca.
+-- =============================================================================
+
+DO $$
+BEGIN
+  IF to_regprocedure('gannet_demo.aplicar_modelo_facturacion()') IS NULL THEN
+    RAISE EXCEPTION
+      'Falta gannet_demo.aplicar_modelo_facturacion(). Aplicar las migraciones de supabase/migrations/ antes de correr este generador.';
+  END IF;
+END $$;
+
+SELECT gannet_demo.aplicar_modelo_facturacion();
+
+-- La curva es lo primero que se proyecta en el congreso. Si quedo rota es
+-- preferible abortar la siembra que descubrirlo en el escenario.
+DO $$
+DECLARE
+  v_ratio numeric;
+  v_peor  numeric;
+  v_min   numeric;
+BEGIN
+  SELECT MIN(emitido_ars),
+         MAX(emitido_ars) / NULLIF(MIN(emitido_ars), 0)
+    INTO v_min, v_ratio
+  FROM public.gd_facturacion_mensual WHERE NOT es_mes_parcial;
+
+  IF v_min < 1000000000 THEN
+    RAISE EXCEPTION 'La ventana del grafico arranca con un mes de solo %.', v_min;
+  END IF;
+
+  IF v_ratio > 3 THEN
+    RAISE EXCEPTION 'La serie tiene un maximo sobre minimo de % a 1.', round(v_ratio, 1);
+  END IF;
+
+  SELECT MAX(ABS(v)) INTO v_peor FROM (
+    SELECT emitido_ars / NULLIF(LAG(emitido_ars) OVER (ORDER BY mes), 0) - 1 AS v
+    FROM public.gd_facturacion_mensual WHERE NOT es_mes_parcial
+  ) d;
+
+  IF v_peor > 0.34 THEN
+    RAISE EXCEPTION 'La serie tiene una variacion mensual de % por ciento.', round(v_peor * 100, 1);
+  END IF;
+END $$;
+
+-- =============================================================================
 -- 26. CIERRE
 -- Se reposicionan las secuencias de identidad, que quedaron en 1 porque las
 -- claves se insertaron explicitamente, y se eliminan los auxiliares del
@@ -2560,6 +2700,14 @@ BEGIN
     WHERE ns.nspname = 'gannet_demo' AND c.relkind = 'r'
     ORDER BY c.relname
   LOOP
+    -- No toda tabla del esquema tiene columna `id`: el catalogo de textos usa
+    -- clave compuesta. `pg_get_serial_sequence` NO devuelve NULL en ese caso,
+    -- lanza "column does not exist", asi que la existencia de la columna se
+    -- comprueba antes de preguntar por la secuencia.
+    CONTINUE WHEN NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'gannet_demo' AND table_name = t AND column_name = 'id');
+
     seq := pg_get_serial_sequence('gannet_demo.' || quote_ident(t), 'id');
     IF seq IS NOT NULL THEN
       EXECUTE format('SELECT COALESCE(max(id), 0) FROM gannet_demo.%I', t) INTO maximo;

@@ -30,11 +30,77 @@ export type KpiEjecutivo = {
   tasa_conversion_pct: number | null
   dotacion_activa: number | null
   clientes_activos: number | null
+  /** Mechanical availability only. Kept for consumers that want the raw figure. */
   flota_operativa: number | null
+  /** Same definition as `gd_flota_estado.apto_circular`, so both screens agree. */
+  flota_apta_circular: number | null
   flota_total: number | null
   equipos_disponibles: number | null
   equipos_total: number | null
   calculado_en: string | null
+}
+
+/** One row per month over the trailing 18-month window, oldest first. */
+export type FacturacionMensual = {
+  mes: string
+  periodo: string
+  etiqueta: string
+  emitido_ars: number | null
+  cobrado_ars: number | null
+  brecha_ars: number | null
+  facturas_emitidas: number | null
+  facturas_cobradas: number | null
+  cobrado_sobre_emitido_pct: number | null
+}
+
+/** One row per service line. `color_hex` is deliberately not consumed by charts. */
+export type IngresoPorServicio = {
+  servicio_id: number
+  servicio_codigo: string | null
+  servicio: string
+  unidad_facturacion: string | null
+  color_hex: string | null
+  facturado_ars: number | null
+  monto_ot_ars: number | null
+  costo_ot_ars: number | null
+  margen_ot_ars: number | null
+  margen_ot_pct: number | null
+  ot_total: number | null
+  ot_completadas: number | null
+  ot_abiertas: number | null
+  horas_reales: number | null
+  horas_estimadas: number | null
+  proyectos_activos: number | null
+  especialistas_activos: number | null
+  participacion_pct: number | null
+}
+
+/** Client portfolio ordered by historical billing. `cliente_id` drives drill-down. */
+export type RankingCliente = {
+  cliente_id: number
+  cliente: string
+  razon_social: string | null
+  cuit: string | null
+  estado_cliente: string | null
+  mineral_principal: string | null
+  provincia: string | null
+  ejecutivo_cuenta_id: number | null
+  ejecutivo_cuenta: string | null
+  facturado_total_ars: number | null
+  facturado_mes_ars: number | null
+  saldo_pendiente_ars: number | null
+  saldo_vencido_ars: number | null
+  facturas_emitidas: number | null
+  limite_credito_ars: number | null
+  uso_credito_pct: number | null
+  ot_total: number | null
+  ot_abiertas: number | null
+  proyectos_total: number | null
+  proyectos_activos: number | null
+  contratado_ars: number | null
+  ultima_actividad_en: string | null
+  dias_sin_actividad: number | null
+  posicion: number | null
 }
 
 // --- Clients ---------------------------------------------------------------
@@ -174,6 +240,7 @@ export type OtOperativa = {
   prioridad: string
   estado: string
   esta_abierta: boolean | null
+  cliente_id: number | null
   cliente: string | null
   proyecto_codigo: string | null
   faena: string | null
@@ -333,7 +400,12 @@ export type FlotaEstado = {
   anio: number | null
   antiguedad_anios: number | null
   estado: string
+  /** Mechanical availability only. Says nothing about the vehicle's paperwork. */
   esta_operativo: boolean | null
+  /** Legally roadworthy: mechanically available AND valid inspection AND valid insurance. */
+  apto_circular: boolean | null
+  /** Which of the three conditions fails, or null when the vehicle is fit to drive. */
+  motivo_no_apto: string | null
   km_actual: number | null
   valor_ars: number | null
   responsable: string | null

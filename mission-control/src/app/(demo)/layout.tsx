@@ -16,7 +16,8 @@ import { AppShell } from '@/core/components/macos/AppShell'
  * The same `AppShell` is rendered as the authenticated group, so the sidebar,
  * toolbar and window chrome are pixel-identical across both contexts. The
  * shell's session-dependent widgets degrade quietly when no session exists:
- * `useNotifications` bails on a non-ok response and the bell renders empty.
+ * `useNotifications` recognizes these routes through `isGannetPublicRoute` and
+ * never issues its request, so the bell renders empty with no console noise.
  *
  * Scope is exactly these twelve modules. Membership in this group is the whole
  * security boundary — every other surface stays under `(app)` and keeps its

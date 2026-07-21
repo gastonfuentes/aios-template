@@ -1,0 +1,53 @@
+/* -----------------------------------------------------------------------------
+ * Executive dashboard chart palette.
+ *
+ * These are NOT the project's `--chart-1..5` tokens. Those were run through a
+ * colorblind-safety validator and failed: green and orange collapse under
+ * deuteranopia at dE 5.1-5.7, below the 6.0 floor. The values below are the
+ * validated replacements and must not be substituted.
+ *
+ * Scoped to `.gd-charts` (the dashboard root) so nothing else in Mission
+ * Control inherits them. Dark values hang off `[data-theme="dark"]` because the
+ * app drives next-themes with `attribute="data-theme"`, not a `.dark` class.
+ *
+ * The dark green is a corrected step, not the macOS `#32D74B`, which sits
+ * outside the dark lightness band.
+ *
+ * Light-mode green `#28CD41` measures 2.12:1 against the white card surface,
+ * under the 3:1 mark minimum. That is why the line chart ships visible direct
+ * end-labels: they carry the identity the mark cannot. Do not remove them.
+ * -------------------------------------------------------------------------- */
+
+.gd-charts {
+  /* Two-series line chart: emitido / cobrado. */
+  --gd-series-1: #007aff;
+  --gd-series-2: #28cd41;
+
+  /* Single hue for every magnitude comparison (bars). */
+  --gd-magnitude: #007aff;
+
+  /* Ordinal ramp, corriente -> +90. Order is the encoding. */
+  --gd-aging-1: #86b6ef;
+  --gd-aging-2: #5598e7;
+  --gd-aging-3: #2a78d6;
+  --gd-aging-4: #1c5cab;
+  --gd-aging-5: #104281;
+}
+
+[data-theme='dark'] .gd-charts {
+  --gd-series-1: #0a84ff;
+  --gd-series-2: #22b03a;
+
+  --gd-magnitude: #0a84ff;
+
+  --gd-aging-1: #cde2fb;
+  --gd-aging-2: #9ec5f4;
+  --gd-aging-3: #6da7ec;
+  --gd-aging-4: #3987e5;
+  --gd-aging-5: #256abf;
+}
+
+/* Hit targets are the whole bar rectangle, which is larger than the mark. */
+.gd-chart-clickable .recharts-rectangle {
+  cursor: pointer;
+}

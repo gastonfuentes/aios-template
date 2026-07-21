@@ -31,6 +31,7 @@ export const GANNET_PUBLIC_ROUTES = [
   '/rrhh',
   '/facturacion',
   '/documentacion',
+  '/ia',
 ] as const
 
 /**

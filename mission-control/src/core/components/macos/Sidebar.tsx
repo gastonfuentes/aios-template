@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { BrandHeader } from './BrandHeader'
 import { SidebarSection } from './SidebarSection'
 import { SidebarItem } from './SidebarItem'
@@ -9,6 +10,7 @@ import { SignoutConfirmDialog } from './SignoutConfirmDialog'
 import { SIDEBAR_SECTIONS } from '@/features/shell/constants'
 import { glassRegular } from '@/core/lib/glass'
 import { useShellMode } from '@/core/hooks/useShellMode'
+import { isGannetPublicRoute } from '@/features/gannet/routes'
 
 /**
  * Sidebar del shell desktop. Liquid Glass regular sobre wallpaper, secciones
@@ -32,6 +34,12 @@ import { useShellMode } from '@/core/hooks/useShellMode'
 export function Sidebar() {
   const [mode, setMode] = useShellMode()
   const [signoutOpen, setSignoutOpen] = useState(false)
+  // The Gannet demo runs as a kiosk with no session, on a tablet, driven by
+  // finger. The red traffic light is a 12px target three pixels from where a
+  // hand rests on the bezel, and its action redirects to `/login` — which on a
+  // stand reads as "the system logged us out". It stays visible for the macOS
+  // chrome but does nothing on those routes.
+  const kiosk = isGannetPublicRoute(usePathname() ?? '')
 
   return (
     <aside
@@ -43,7 +51,9 @@ export function Sidebar() {
         <TrafficLights
           mode={mode}
           onChangeMode={setMode}
-          onClose={() => setSignoutOpen(true)}
+          onClose={() => {
+            if (!kiosk) setSignoutOpen(true)
+          }}
         />
       </div>
 

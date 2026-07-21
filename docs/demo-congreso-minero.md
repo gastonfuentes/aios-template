@@ -163,14 +163,21 @@ beautiful empty form. It is what turns tier 3 from mockup into system.
 
 ### Seeded delinquency levels — reviewed and kept
 
-The seed produces 54.5% of YTD billing uncollected and 39% overdue
-($16,959 M of $43,496 M). This was raised as a plausibility concern: a services
-company carrying that much overdue receivable would not be solvent, and an
-industry visitor may read the figures as obviously fabricated.
+The seed produces ~53% of YTD billing uncollected and ~37% overdue
+($13,006 M of $35,160 M, as of 2026-07-20). This was raised as a plausibility
+concern: a services company carrying that much overdue receivable would not be
+solvent, and an industry visitor may read the figures as obviously fabricated.
 
 The operator reviewed the numbers and chose to keep them. Do not re-open this
 or silently adjust the seed. If it ever needs changing, it changes in the seed
 generator, not in the views.
+
+> Note: the day-3 `modelo_facturacion` migration reshaped the billing curve, so
+> these figures moved from the originally-recorded $16,959 M / $43,496 M
+> (54.5% / 39%) to the values above. The proportions were preserved on purpose.
+> The overdue total is computed against `CURRENT_DATE`, so it drifts by a day
+> between rehearsal (23rd) and the congress (24th) — never quote a hard-coded
+> figure from a slide.
 
 ### Consequence: versioned SQL is now load-bearing
 

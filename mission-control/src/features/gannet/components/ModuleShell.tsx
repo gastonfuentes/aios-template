@@ -50,7 +50,7 @@ export function ModuleShell({
               type="button"
               onClick={onReload}
               disabled={loading}
-              className="mc-interactive inline-flex items-center gap-2 rounded-control px-3 py-1.5 text-callout"
+              className="mc-interactive inline-flex h-11 items-center gap-2 rounded-control px-4 text-callout"
               style={{ background: 'var(--fill-secondary)', color: 'var(--label-primary)' }}
             >
               <RefreshCw

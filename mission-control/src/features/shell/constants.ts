@@ -60,9 +60,11 @@ export const SIDEBAR_SECTIONS: readonly SidebarSectionDef[] = [
     label: 'General',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
-      // PRP-030 polish: "AI Agent" + icon Bot — refleja la identidad del módulo
-      // (chat con agent, agente principal del operador). Ruta `/ai-agent`.
-      { label: 'AI Agent', href: '/ai-agent', icon: 'Bot' },
+      // PRP-030 polish: "AI Agent" + icon Bot — refleja la identidad del módulo.
+      // Demo congreso minero: reapuntado de `/ai-agent` (chat con daemon, gateado
+      // por login — muere en el kiosco) al asistente público `/ia`. Label e icono
+      // se conservan; solo cambia el destino a la superficie sin sesión.
+      { label: 'AI Agent', href: '/ia', icon: 'Bot' },
       { label: 'Draw', href: '/draw', icon: 'PenSquare' },
     ],
   },
@@ -117,6 +119,7 @@ export const TOOLBAR_TITLES: Record<string, string> = {
   '/rrhh': 'Recursos humanos',
   '/facturacion': 'Facturación y cobranzas',
   '/documentacion': 'Documentación',
+  '/ia': 'Asistente Gannet',
 }
 
 export function titleForPath(pathname: string): string {

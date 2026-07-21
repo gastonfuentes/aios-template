@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/core/adapters/supabase/browser'
+import { isGannetPublicRoute } from '@/features/gannet/routes'
 import type { AIOSNotification } from '../types'
 
 export type UseNotificationsReturn = {
@@ -22,8 +24,16 @@ export type UseNotificationsReturn = {
 export function useNotifications(): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<AIOSNotification[]>([])
   const abortRef = useRef<AbortController | null>(null)
+  // The public kiosk routes render with no session, so `/api/notifications`
+  // answers 401 and the failed request surfaces as one console error per module.
+  // There is nothing to show without a session, so the call — and the realtime
+  // channel behind it — is skipped outright rather than having its error
+  // swallowed. `usePathname` is null only outside the App Router.
+  const pathname = usePathname()
+  const isPublicDemo = isGannetPublicRoute(pathname ?? '')
 
   const refresh = useCallback(async () => {
+    if (isPublicDemo) return
     abortRef.current?.abort()
     const ac = new AbortController()
     abortRef.current = ac
@@ -35,9 +45,11 @@ export function useNotifications(): UseNotificationsReturn {
     } catch {
       /* silent */
     }
-  }, [])
+  }, [isPublicDemo])
 
   useEffect(() => {
+    if (isPublicDemo) return
+
     // Initial fetch on mount (canónico PRP-030 — eslint-disable-next-line)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh()
@@ -59,7 +71,7 @@ export function useNotifications(): UseNotificationsReturn {
       abortRef.current?.abort()
       supabase.removeChannel(channel)
     }
-  }, [refresh])
+  }, [refresh, isPublicDemo])
 
   const markRead = useCallback(
     async (id: string) => {

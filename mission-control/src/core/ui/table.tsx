@@ -17,8 +17,16 @@
  * `rounded-control` radii, iOS type scale, colors via CSS custom properties.
  */
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  MoveHorizontal,
+  Search,
+} from 'lucide-react'
 
 /** Value a column contributes to sorting. `null` always sorts last. */
 export type SortValue = string | number | boolean | null | undefined
@@ -190,7 +198,7 @@ export function DataTable<T>({
                 onChange={(event) => onSearchChange(event.target.value)}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="mc-interactive-soft w-full rounded-control py-1.5 pl-8 pr-3 text-callout outline-none"
+                className="mc-interactive-soft h-11 w-full rounded-control pl-8 pr-3 text-callout outline-none"
                 style={{
                   background: 'var(--fill-secondary)',
                   color: 'var(--label-primary)',
@@ -227,7 +235,7 @@ export function DataTable<T>({
           {noResultsMessage}
         </p>
       ) : (
-        <div className="min-w-0 overflow-x-auto">
+        <TableViewport>
           <table className="w-full border-collapse text-callout">
             <thead>
               <tr>
@@ -242,7 +250,7 @@ export function DataTable<T>({
                         isSorted ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
                       }
                       className={[
-                        'whitespace-nowrap border-b px-3 py-2 text-caption1 font-medium',
+                        'whitespace-nowrap border-b px-3 py-1 text-caption1 font-medium',
                         ALIGN_CLASS[column.align ?? 'left'],
                         column.hideBelow ? HIDE_BELOW_CLASS[column.hideBelow] : '',
                       ]
@@ -259,7 +267,9 @@ export function DataTable<T>({
                           type="button"
                           onClick={() => toggleSort(column)}
                           className={[
-                            'mc-interactive-soft inline-flex items-center gap-1 rounded-control px-1 py-0.5',
+                            // `min-h` rather than a fixed height: the sort control
+                            // is the finger target for the whole header cell.
+                            'mc-interactive-soft inline-flex min-h-[2.5rem] items-center gap-1 rounded-control px-2 py-0.5',
                             column.align === 'right' ? 'flex-row-reverse' : '',
                           ]
                             .filter(Boolean)
@@ -331,7 +341,7 @@ export function DataTable<T>({
               })}
             </tbody>
           </table>
-        </div>
+        </TableViewport>
       )}
 
       {pageCount > 1 && !error && (
@@ -364,6 +374,65 @@ export function DataTable<T>({
   )
 }
 
+/**
+ * Horizontal viewport for the table, with an explicit affordance when columns
+ * fall outside it.
+ *
+ * The demo is presented on a tablet in landscape, where the module content area
+ * is ~722px wide at 1024px and ~978px at 1280px while several grids are 1.3k to
+ * 1.5k pixels wide. A bare `overflow-x-auto` container gives a mouse user a
+ * scrollbar but gives a finger nothing: the columns past the right edge are
+ * simply invisible, and the presenter has no reason to swipe. The inset shadow
+ * plus the caption make the hidden columns discoverable without touching any
+ * column layout.
+ */
+function TableViewport({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [overflow, setOverflow] = useState({ scrollable: false, atEnd: true })
+
+  const measure = useCallback(() => {
+    const node = ref.current
+    if (!node) return
+    const max = node.scrollWidth - node.clientWidth
+    setOverflow({ scrollable: max > 2, atEnd: node.scrollLeft >= max - 2 })
+  }, [])
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [measure])
+
+  return (
+    <>
+      <div
+        ref={ref}
+        onScroll={measure}
+        className="min-w-0 overflow-x-auto"
+        style={
+          overflow.scrollable && !overflow.atEnd
+            ? { boxShadow: 'inset -14px 0 12px -12px rgb(0 0 0 / 0.28)' }
+            : undefined
+        }
+      >
+        {children}
+      </div>
+      {overflow.scrollable && !overflow.atEnd && (
+        <p
+          className="flex items-center justify-end gap-1 px-4 pb-2 pt-1.5 text-caption2"
+          style={{ color: 'var(--label-tertiary)' }}
+        >
+          <MoveHorizontal size={12} strokeWidth={2} aria-hidden />
+          Deslizá para ver más columnas
+        </p>
+      )}
+    </>
+  )
+}
+
 function PageButton({
   label,
   disabled,
@@ -381,7 +450,8 @@ function PageButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="mc-interactive inline-flex h-7 w-7 items-center justify-center rounded-control"
+      // 44px: the demo is driven by finger on a tablet, not by mouse.
+      className="mc-interactive inline-flex h-11 w-11 items-center justify-center rounded-control"
       style={{ background: 'var(--fill-secondary)', color: 'var(--label-primary)' }}
     >
       {children}

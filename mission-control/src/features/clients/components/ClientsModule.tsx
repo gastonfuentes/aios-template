@@ -201,10 +201,10 @@ function ClientDetailPanel({
             type="button"
             onClick={onClose}
             aria-label="Cerrar detalle"
-            className="mc-interactive inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control"
+            className="mc-interactive inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control"
             style={{ background: 'var(--fill-secondary)', color: 'var(--label-primary)' }}
           >
-            <X size={14} strokeWidth={2} aria-hidden />
+            <X size={18} strokeWidth={2} aria-hidden />
           </button>
         </header>
 

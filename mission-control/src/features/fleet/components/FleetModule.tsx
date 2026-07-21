@@ -72,13 +72,31 @@ const COLUMNS: readonly Column<FlotaEstado>[] = [
   },
   {
     key: 'estado',
-    header: 'Estado',
+    header: 'Estado mecánico',
     render: (row) => {
       const state = describe(VEHICLE_STATE, row.estado)
       return <Pill tone={state.tone}>{state.label}</Pill>
     },
     sortValue: (row) => row.estado,
     searchValue: (row) => row.estado,
+  },
+  {
+    // The column that keeps the KPI honest. A vehicle can be mechanically
+    // OPERATIVO and still be barred from the road by an expired inspection or
+    // policy, so the fitness verdict is stated per row and the headline number
+    // above is the count of the green pills in this column.
+    key: 'apto_circular',
+    header: 'Apto circular',
+    render: (row) =>
+      row.apto_circular === true ? (
+        <Pill tone="positive">Apto</Pill>
+      ) : (
+        <Pill tone="critical" title={row.motivo_no_apto ?? undefined}>
+          {row.motivo_no_apto ?? 'No apto'}
+        </Pill>
+      ),
+    sortValue: (row) => (row.apto_circular === true ? 1 : 0),
+    searchValue: (row) => (row.apto_circular === true ? 'apto' : `no apto ${row.motivo_no_apto ?? ''}`),
   },
   {
     key: 'vtv_vence_el',
@@ -154,13 +172,17 @@ export function FleetModule() {
   const { rows, loading, error, reload } = useView<FlotaEstado>('gd_flota_estado')
 
   const summary = useMemo(() => {
-    const operational = rows.filter((row) => row.esta_operativo === true).length
+    // Denominator is the active fleet: a decommissioned unit is not a vehicle
+    // the company failed to keep on the road, so counting it against the ratio
+    // would understate compliance rather than overstate it.
+    const activeFleet = rows.filter((row) => row.estado !== 'baja').length
+    const roadworthy = rows.filter((row) => row.apto_circular === true).length
     const expiredInspection = rows.filter((row) => row.vtv_vencida === true).length
     const expiredInsurance = rows.filter((row) => row.seguro_vencido === true).length
     const expiringSoon = rows.filter(
       (row) => row.vtv_por_vencer_30d === true || row.seguro_por_vencer_30d === true,
     ).length
-    return { operational, expiredInspection, expiredInsurance, expiringSoon }
+    return { activeFleet, roadworthy, expiredInspection, expiredInsurance, expiringSoon }
   }, [rows])
 
   return (
@@ -173,10 +195,10 @@ export function FleetModule() {
     >
       <StatGrid>
         <StatCard
-          label="Flota operativa"
-          value={`${formatInteger(summary.operational)} / ${formatInteger(rows.length)}`}
-          hint="Vehículos en condiciones de circular"
-          tone="positive"
+          label="En condiciones de circular"
+          value={`${formatInteger(summary.roadworthy)} / ${formatInteger(summary.activeFleet)}`}
+          hint="Operativos con VTV y seguro vigentes"
+          tone={summary.roadworthy < summary.activeFleet ? 'warning' : 'positive'}
           loading={loading}
         />
         <StatCard

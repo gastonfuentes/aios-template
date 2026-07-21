@@ -33,22 +33,6 @@ export function formatArs(value: Numeric): string {
   return parsed === null ? EMPTY : arsFormatter.format(parsed)
 }
 
-const compactArsFormatter = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-
-/**
- * Compact currency for KPI tiles. Full figures in the billions blow past the
- * width of a card; `$ 43,5 MM` stays readable from the back of a stand.
- */
-export function formatArsCompact(value: Numeric): string {
-  const parsed = toNumber(value)
-  return parsed === null ? EMPTY : compactArsFormatter.format(parsed)
-}
-
 const integerFormatter = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
 
 export function formatInteger(value: Numeric): string {
@@ -64,6 +48,51 @@ const decimalFormatter = new Intl.NumberFormat('es-AR', {
 export function formatDecimal(value: Numeric): string {
   const parsed = toNumber(value)
   return parsed === null ? EMPTY : decimalFormatter.format(parsed)
+}
+
+/**
+ * Compact magnitude steps, largest first, each a thousand times the next.
+ *
+ * Selection is by fixed threshold rather than by `Intl` compact notation, which
+ * `es-AR` gets wrong at exactly the scale this demo lives in: CLDR maps 1e9 to a
+ * `0000 M` pattern, so 3.749.400.000 renders as `3749,4 M` while 23.700.000.000
+ * renders as `23,7 mil M`. Two figures one order of magnitude apart, shown in
+ * units that do not step — side by side on a card row it reads as a bug. The
+ * same formatter also alternates `K` and `k` between thousands, which no amount
+ * of option tuning fixes.
+ */
+const COMPACT_STEPS = [
+  { min: 1_000_000_000_000, suffix: 'B' },
+  { min: 1_000_000_000, suffix: 'mil M' },
+  { min: 1_000_000, suffix: 'M' },
+  { min: 1_000, suffix: 'mil' },
+] as const
+
+/**
+ * Scales a number onto a single magnitude step with one decimal, e.g. `3,7 mil M`.
+ * Below a thousand there is nothing to compact, so the plain integer is returned.
+ */
+function formatCompactNumber(parsed: number): string {
+  const index = COMPACT_STEPS.findIndex((step) => Math.abs(parsed) >= step.min)
+  if (index === -1) return integerFormatter.format(parsed)
+  // Rounding to one decimal can push a value onto the step above: 999.950.000
+  // scales to 999,95 and would render as `1.000,0 M` — the very inconsistency
+  // this function exists to prevent. Promote it to `1,0 mil M` instead.
+  const overflows = Math.abs(parsed) / COMPACT_STEPS[index].min >= 999.95
+  const step = overflows && index > 0 ? COMPACT_STEPS[index - 1] : COMPACT_STEPS[index]
+  return `${decimalFormatter.format(parsed / step.min)} ${step.suffix}`
+}
+
+/**
+ * Compact currency for KPI tiles. Full figures in the billions blow past the
+ * width of a card; `$ 43,5 mil M` stays readable from the back of a stand.
+ *
+ * Every value picks its own step from the same fixed thresholds, so two figures
+ * in one card row can never disagree about which unit their magnitude belongs to.
+ */
+export function formatArsCompact(value: Numeric): string {
+  const parsed = toNumber(value)
+  return parsed === null ? EMPTY : `$ ${formatCompactNumber(parsed)}`
 }
 
 export function formatPercent(value: Numeric, fractionDigits = 1): string {

@@ -26,6 +26,20 @@ export type ViewConfig = {
 export const GANNET_VIEWS = {
   // --- Executive -----------------------------------------------------------
   gd_kpi_ejecutivo: { maxRows: 1 },
+  gd_facturacion_mensual: {
+    // The view generates a fixed 18-month window; ascending `mes` is what the
+    // line chart plots left-to-right, so the ordering is not cosmetic.
+    order: { column: 'mes', ascending: true },
+    maxRows: 40,
+  },
+  gd_ingresos_por_servicio: {
+    order: { column: 'facturado_ars', ascending: false },
+    maxRows: 40,
+  },
+  gd_ranking_clientes: {
+    order: { column: 'facturado_total_ars', ascending: false },
+    maxRows: 100,
+  },
 
   // --- Clients -------------------------------------------------------------
   gd_clientes: {
@@ -58,6 +72,9 @@ export const GANNET_VIEWS = {
   gd_ot_operativas: {
     order: { column: 'fecha_programada', ascending: false },
     maxRows: 1500,
+    // `cliente_id` backs the drill-down from the executive client ranking:
+    // /ordenes-trabajo?cliente=<id>. The route only honours declared columns.
+    filters: ['cliente_id'],
   },
   gd_ot_carga_operativa: {
     order: { column: 'orden_estado', ascending: true },

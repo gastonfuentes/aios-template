@@ -1,57 +1,78 @@
 'use client'
 
 /**
- * Executive dashboard — KPI tiles from `gd_kpi_ejecutivo`.
+ * Executive dashboard — one hero banner, three KPI bands, four charts.
  *
- * Day 2 scope: the headline figures only. The charts (billing series, revenue by
- * service, client ranking) are day 3, which is why `gd_facturacion_mensual`,
- * `gd_ingresos_por_servicio` and `gd_ranking_clientes` are not read here yet.
+ * Composed for the fold, not for the scroll. This is the opening screen of a
+ * three-minute pitch given on a tablet in landscape (1024x768), so the first
+ * screenful has to answer "how is the company doing" on its own: the headline
+ * figure, the four commercial KPIs, and the billing-evolution chart all land
+ * above the fold. Everything after it is the second beat of the narration.
  *
- * The view returns exactly one row. Tiles are grouped into three bands —
- * commercial, operations, resources — so the presenter can walk the board
- * top-to-bottom instead of scanning a flat grid of twenty numbers.
+ * Reading order is the narration order: the presenter opens on the overdue
+ * receivable (the single hero number), reads the commercial band beside it,
+ * points at the emitted-vs-collected gap in the first chart, then walks the
+ * composition charts — which service lines produced the money, which clients
+ * owe it, how old that debt is — and closes on operations and resources. The
+ * client ranking is clickable and is the hand-off into the operational
+ * drill-down.
+ *
+ * Spacing is owned here through a single wrapper instead of handing `ModuleShell`
+ * one child per block: the shell separates its children with a 20px gap, which
+ * across seven blocks costs more vertical room than the fold can spare.
+ *
+ * Five views are read in parallel rather than through `useViews2`, which only
+ * pairs two. Each is independent and responds in single-digit milliseconds.
  */
 
-import {
-  AlertTriangle,
-  Banknote,
-  Boxes,
-  ClipboardList,
-  Clock,
-  FolderKanban,
-  HardHat,
-  Percent,
-  ReceiptText,
-  ShieldAlert,
-  Truck,
-  Users,
-  Wallet,
-  Wrench,
-} from 'lucide-react'
-import { ModuleSection, ModuleShell } from '@/features/gannet/components/ModuleShell'
-import { StatCard, StatGrid } from '@/features/gannet/components/StatCard'
+import { ModuleShell } from '@/features/gannet/components/ModuleShell'
 import { useView } from '@/features/gannet/useView'
 import {
+  formatArs,
   formatArsCompact,
   formatDateTime,
-  formatInteger,
   formatPercent,
 } from '@/features/gannet/format'
-import type { KpiEjecutivo } from '@/features/gannet/types'
-import type { Tone } from '@/features/gannet/tone'
-
-const ICON_SIZE = 14
+import type {
+  CobranzaAging,
+  FacturacionMensual,
+  IngresoPorServicio,
+  KpiEjecutivo,
+  RankingCliente,
+} from '@/features/gannet/types'
+import { ratio } from '../kpiMath'
+import { ChartPaletteProvider } from './chartPalette'
+import { CobranzaAgingChart } from './CobranzaAgingChart'
+import { CommercialKpiBand, OperationalKpiBands } from './ExecutiveKpiBands'
+import { FacturacionMensualChart } from './FacturacionMensualChart'
+import { HeroFigure } from './HeroFigure'
+import { IngresosPorServicioChart } from './IngresosPorServicioChart'
+import { RankingClientesChart } from './RankingClientesChart'
 
 export function ExecutiveDashboard() {
-  const { rows, loading, error, reload } = useView<KpiEjecutivo>('gd_kpi_ejecutivo')
-  const kpi = rows[0]
+  const kpiView = useView<KpiEjecutivo>('gd_kpi_ejecutivo')
+  const monthlyView = useView<FacturacionMensual>('gd_facturacion_mensual')
+  const serviceView = useView<IngresoPorServicio>('gd_ingresos_por_servicio')
+  const clientView = useView<RankingCliente>('gd_ranking_clientes')
+  const agingView = useView<CobranzaAging>('gd_cobranzas_aging')
 
-  // Ratios are computed here rather than in the view: the view already exposes
-  // both numerator and denominator, and deriving them in the client keeps the
-  // migration untouched.
-  const fleetRatio = ratio(kpi?.flota_operativa, kpi?.flota_total)
-  const equipmentRatio = ratio(kpi?.equipos_disponibles, kpi?.equipos_total)
-  const overdueShare = ratio(kpi?.cobranza_vencida_ars, kpi?.cobranza_pendiente_ars)
+  const kpi = kpiView.rows[0]
+  const loading =
+    kpiView.loading ||
+    monthlyView.loading ||
+    serviceView.loading ||
+    clientView.loading ||
+    agingView.loading
+  const error =
+    kpiView.error ?? monthlyView.error ?? serviceView.error ?? clientView.error ?? agingView.error
+
+  const reload = () => {
+    kpiView.reload()
+    monthlyView.reload()
+    serviceView.reload()
+    clientView.reload()
+    agingView.reload()
+  }
 
   return (
     <ModuleShell
@@ -65,7 +86,7 @@ export function ExecutiveDashboard() {
       error={error}
       onReload={reload}
     >
-      {!loading && !error && !kpi ? (
+      {!loading && error === null && kpi === undefined ? (
         <p
           className="mc-card rounded-card px-4 py-12 text-center text-callout"
           style={{ color: 'var(--label-tertiary)' }}
@@ -73,172 +94,43 @@ export function ExecutiveDashboard() {
           Todavía no hay indicadores calculados.
         </p>
       ) : (
-        <>
-          <ModuleSection title="Comercial y cobranzas">
-            <StatGrid>
-              <StatCard
-                label="Facturación del mes"
-                value={formatArsCompact(kpi?.facturacion_mes_ars)}
-                hint={`Acumulado del año: ${formatArsCompact(kpi?.facturacion_ytd_ars)}`}
-                tone="positive"
-                icon={<Banknote size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Cobranza pendiente"
-                value={formatArsCompact(kpi?.cobranza_pendiente_ars)}
-                hint={`${formatInteger(kpi?.facturas_pendientes)} facturas sin cobrar`}
-                tone="warning"
-                icon={<Wallet size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Cobranza vencida"
-                value={formatArsCompact(kpi?.cobranza_vencida_ars)}
-                hint={
-                  overdueShare === null
-                    ? 'Sobre el total pendiente'
-                    : `${formatPercent(overdueShare)} del total pendiente`
-                }
-                tone="critical"
-                icon={<AlertTriangle size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Pipeline abierto"
-                value={formatArsCompact(kpi?.pipeline_abierto_ars)}
-                hint={`Tasa de conversión: ${formatPercent(kpi?.tasa_conversion_pct)}`}
-                tone="info"
-                icon={<Percent size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-            </StatGrid>
-          </ModuleSection>
+        <ChartPaletteProvider>
+          <div className="flex min-w-0 flex-col gap-4">
+            <HeroFigure
+              label="Cobranza vencida"
+              value={formatArsCompact(kpi?.cobranza_vencida_ars)}
+              hint={overdueHint(kpi)}
+              detail={`${formatArs(kpi?.cobranza_vencida_ars)} fuera de término`}
+              loading={kpiView.loading}
+            />
 
-          <ModuleSection title="Operaciones">
-            <StatGrid>
-              <StatCard
-                label="Órdenes de trabajo abiertas"
-                value={formatInteger(kpi?.ot_abiertas)}
-                hint={`${formatInteger(kpi?.ot_en_ejecucion)} en ejecución`}
-                tone="info"
-                icon={<ClipboardList size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Órdenes críticas"
-                value={formatInteger(kpi?.ot_criticas)}
-                hint="Prioridad crítica sin cerrar"
-                tone={toneForCount(kpi?.ot_criticas)}
-                icon={<AlertTriangle size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Completadas en el mes"
-                value={formatInteger(kpi?.ot_completadas_mes)}
-                hint="Órdenes cerradas en el período"
-                tone="positive"
-                icon={<Wrench size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Incidentes de seguridad"
-                value={formatInteger(kpi?.incidentes_seguridad_mes)}
-                hint="Registrados en el mes"
-                tone={toneForCount(kpi?.incidentes_seguridad_mes)}
-                icon={<ShieldAlert size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-            </StatGrid>
-          </ModuleSection>
+            <CommercialKpiBand kpi={kpi} loading={kpiView.loading} />
 
-          <ModuleSection title="Cartera y recursos">
-            <StatGrid>
-              <StatCard
-                label="Proyectos activos"
-                value={formatInteger(kpi?.proyectos_activos)}
-                hint="En curso o planificados"
-                tone="info"
-                icon={<FolderKanban size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Clientes activos"
-                value={formatInteger(kpi?.clientes_activos)}
-                hint="Con operación vigente"
-                tone="positive"
-                icon={<Users size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Dotación activa"
-                value={formatInteger(kpi?.dotacion_activa)}
-                hint="Personal en actividad"
-                tone="neutral"
-                icon={<HardHat size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Flota operativa"
-                value={`${formatInteger(kpi?.flota_operativa)} / ${formatInteger(kpi?.flota_total)}`}
-                hint={fleetRatio === null ? 'Vehículos disponibles' : `${formatPercent(fleetRatio)} de la flota`}
-                tone={fleetRatio !== null && fleetRatio < 80 ? 'warning' : 'positive'}
-                icon={<Truck size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Equipos disponibles"
-                value={`${formatInteger(kpi?.equipos_disponibles)} / ${formatInteger(kpi?.equipos_total)}`}
-                hint={
-                  equipmentRatio === null
-                    ? 'Equipos y herramientas'
-                    : `${formatPercent(equipmentRatio)} del parque`
-                }
-                tone={equipmentRatio !== null && equipmentRatio < 60 ? 'warning' : 'positive'}
-                icon={<Boxes size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Facturas pendientes"
-                value={formatInteger(kpi?.facturas_pendientes)}
-                hint="Emitidas y sin cobrar"
-                tone="warning"
-                icon={<ReceiptText size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Órdenes en ejecución"
-                value={formatInteger(kpi?.ot_en_ejecucion)}
-                hint="Trabajo en curso hoy"
-                tone="accent"
-                icon={<Clock size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-              <StatCard
-                label="Facturación acumulada"
-                value={formatArsCompact(kpi?.facturacion_ytd_ars)}
-                hint="Ejercicio en curso"
-                tone="positive"
-                icon={<Banknote size={ICON_SIZE} strokeWidth={2} />}
-                loading={loading}
-              />
-            </StatGrid>
-          </ModuleSection>
-        </>
+            <FacturacionMensualChart rows={monthlyView.rows} />
+
+            <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+              <IngresosPorServicioChart rows={serviceView.rows} />
+              <RankingClientesChart rows={clientView.rows} />
+            </div>
+
+            <CobranzaAgingChart rows={agingView.rows} />
+
+            <OperationalKpiBands kpi={kpi} loading={kpiView.loading} />
+          </div>
+        </ChartPaletteProvider>
       )}
     </ModuleShell>
   )
 }
 
-/** Percentage of `part` over `total`, or null when the ratio is undefined. */
-function ratio(part: number | null | undefined, total: number | null | undefined): number | null {
-  if (part === null || part === undefined) return null
-  if (total === null || total === undefined || total === 0) return null
-  return (part / total) * 100
-}
-
-/** Counts of bad things: zero is good news, anything above zero is not. */
-function toneForCount(value: number | null | undefined): Tone {
-  if (value === null || value === undefined) return 'neutral'
-  return value > 0 ? 'critical' : 'positive'
+/**
+ * Reading of the hero figure: how much of what is owed is already late.
+ *
+ * The share used to live on a duplicate "Cobranza vencida" tile in the
+ * commercial band. The tile is gone; the reading it carried is not.
+ */
+function overdueHint(kpi: KpiEjecutivo | undefined): string {
+  const share = ratio(kpi?.cobranza_vencida_ars, kpi?.cobranza_pendiente_ars)
+  if (share === null) return 'Sobre el total de cobranza pendiente'
+  return `${formatPercent(share)} de la cobranza pendiente`
 }
