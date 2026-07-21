@@ -39,6 +39,12 @@ export interface OrchestratorResult {
   readonly answer: string
   readonly toolUsed: boolean
   readonly toolNames: readonly string[]
+  /**
+   * SDK session for this turn. The caller hands it back on the next question to
+   * continue the same conversation, which is what makes a follow-up like "y de
+   * esos, ¿cuáles son de litio?" resolve against the previous answer.
+   */
+  readonly sessionId?: string
 }
 
 /**
@@ -88,9 +94,13 @@ function collect(
  * Answers one question. Throws on SDK/subscription failure or timeout so the
  * caller can fall back; never returns a partial or fabricated answer.
  */
-export async function orchestrate(question: string): Promise<OrchestratorResult> {
+export async function orchestrate(
+  question: string,
+  resumeSessionId?: string,
+): Promise<OrchestratorResult> {
   const parts: string[] = []
   const tools = new Set<string>()
+  let sessionId: string | undefined
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ANSWER_TIMEOUT_MS)
@@ -110,9 +120,14 @@ export async function orchestrate(question: string): Promise<OrchestratorResult>
         maxTurns: 6,
         abortController: controller,
         includePartialMessages: false,
+        ...(resumeSessionId !== undefined && { resume: resumeSessionId }),
       },
     })) {
-      collect(message as { type: string; message?: { content?: unknown } }, parts, tools)
+      const m = message as { type: string; session_id?: string; message?: { content?: unknown } }
+      // Every turn reports its session; the last one wins so a resumed
+      // conversation keeps advancing rather than pinning the original id.
+      if (typeof m.session_id === 'string' && m.session_id.length > 0) sessionId = m.session_id
+      collect(m, parts, tools)
     }
   } finally {
     clearTimeout(timeout)
@@ -129,5 +144,6 @@ export async function orchestrate(question: string): Promise<OrchestratorResult>
     answer: stripToolMarkup(raw),
     toolUsed: tools.size > 0,
     toolNames: [...tools],
+    ...(sessionId !== undefined && { sessionId }),
   }
 }

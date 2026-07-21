@@ -48,14 +48,105 @@ const RATE_WINDOW_MS = 60_000
 
 const QuestionSchema = z.object({
   question: z.string().trim().min(1).max(500),
+  sessionId: z.string().trim().uuid().optional(),
 })
 
 export interface AskResponse {
   readonly answer: string
   readonly source: AnswerSource
+  /**
+   * Present only when the answer was grounded. The client stores it and sends
+   * it back on the next question; because a session id is never handed out for
+   * an ungrounded turn, holding one implies the conversation so far was real.
+   */
+  readonly sessionId?: string
 }
 
 const hits = new Map<string, number[]>()
+
+/**
+ * Figures published in the last grounded answer of each conversation.
+ *
+ * A follow-up may legitimately restate a number from the previous turn without
+ * calling a tool again. Trusting the mere presence of a session id to allow that
+ * would be wrong twice over: a grounded history says nothing about the current
+ * turn, and the id is client-supplied, so any well-formed uuid would do. Instead
+ * the server remembers what it actually published and lets an untooled figure
+ * through only when it was already published for that same session.
+ */
+const publishedFigures = new Map<string, ReadonlySet<string>>()
+
+/**
+ * Canonical numeric value of every figure in the text.
+ *
+ * es-AR groups thousands with `.` and marks decimals with `,`, so the two
+ * separators cannot be stripped alike: doing that collapses `72,3` and `7,23`
+ * onto the same key and would let a fabricated figure pass as one already
+ * published. Only thousands separators are removed; the decimal comma becomes a
+ * point and the result is compared as a number.
+ */
+function figuresOf(text: string): ReadonlySet<string> {
+  const found = text.match(/\d[\d.,]*/g) ?? []
+  const out = new Set<string>()
+  for (const raw of found) {
+    const canonical = raw
+      .replace(/\.(?=\d{3}(\D|$))/g, '')
+      .replace(/,(?=\d{3}(\D|$))/g, '')
+      .replace(',', '.')
+      .replace(/[.,]+$/, '')
+    const value = Number(canonical)
+    // Fail closed. A token this parser cannot resolve is kept verbatim rather
+    // than dropped: a dropped figure is neither remembered nor checked, so it
+    // could never block anything, which is exactly how a guard gets bypassed.
+    out.add(Number.isFinite(value) ? String(value) : raw)
+  }
+  return out
+}
+
+/** Sessions whose figures are retained; the kiosk runs all day unattended. */
+const MAX_TRACKED_SESSIONS = 200
+
+/** Figures retained per conversation before the oldest are forgotten. */
+const MAX_FIGURES_PER_SESSION = 400
+
+function rememberFigures(sessionId: string | undefined, answer: string): void {
+  if (sessionId === undefined) return
+  // Bounded: evict the oldest entry rather than growing without limit over a
+  // full day of stand traffic. Map iteration order is insertion order.
+  if (!publishedFigures.has(sessionId) && publishedFigures.size >= MAX_TRACKED_SESSIONS) {
+    const oldest = publishedFigures.keys().next()
+    if (!oldest.done) publishedFigures.delete(oldest.value)
+  }
+  // Accumulate across the conversation instead of replacing. Every turn is a
+  // thing this server published, and a later question may restate a figure from
+  // several turns back; overwriting would forget it and reject the restatement.
+  const previous = publishedFigures.get(sessionId)
+  const merged = new Set(previous ?? [])
+  for (const figure of figuresOf(answer)) {
+    if (merged.size >= MAX_FIGURES_PER_SESSION) break
+    merged.add(figure)
+  }
+  // Delete before setting so recency refreshes here too. `Map.set` on a key that
+  // already exists updates the value without moving its position, so writing
+  // alone would leave an actively used session pinned at its original slot and
+  // still first in line for eviction.
+  publishedFigures.delete(sessionId)
+  publishedFigures.set(sessionId, merged)
+}
+
+/** True when every figure in `answer` was already published for this session. */
+function onlyRestatesKnownFigures(sessionId: string, answer: string): boolean {
+  const known = publishedFigures.get(sessionId)
+  if (known === undefined) return false
+  // Re-insert so eviction is least-recently-used: a conversation still in use
+  // must not be dropped just because it happened to start first.
+  publishedFigures.delete(sessionId)
+  publishedFigures.set(sessionId, known)
+  for (const figure of figuresOf(answer)) {
+    if (!known.has(figure)) return false
+  }
+  return true
+}
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now()
@@ -78,8 +169,16 @@ function clientIp(req: Request): string {
   return req.headers.get('x-real-ip') ?? 'unknown'
 }
 
-function reply(answer: string, source: AnswerSource, status = 200): NextResponse<AskResponse> {
-  return NextResponse.json({ answer, source }, { status })
+function reply(
+  answer: string,
+  source: AnswerSource,
+  status = 200,
+  sessionId?: string,
+): NextResponse<AskResponse> {
+  return NextResponse.json(
+    sessionId === undefined ? { answer, source } : { answer, source, sessionId },
+    { status },
+  )
 }
 
 /**
@@ -124,18 +223,31 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   let question: string
+  let sessionId: string | undefined
   try {
-    question = QuestionSchema.parse(await req.json()).question
+    const parsed = QuestionSchema.parse(await req.json())
+    question = parsed.question
+    sessionId = parsed.sessionId
   } catch {
     return reply('Escribí una pregunta para consultar.', 'none', 400)
   }
 
   // 1) Orchestrator first. 2) Number-guard: discard a figure with no tool behind
   // it. Any miss falls through to the stage-1 deterministic path.
-  const orchestrated = await askOrchestrator(question)
+  const orchestrated = await askOrchestrator(question, sessionId)
   if (orchestrated !== null) {
-    const grounded = orchestrated.toolUsed || !containsFigure(orchestrated.answer)
-    if (grounded) return reply(orchestrated.answer, 'none')
+    // Grounded when a tool ran, when there is no figure to get wrong, or when
+    // every figure merely restates one this server already published for this
+    // same session. A brand-new untooled figure is still discarded, which is the
+    // whole point of the guard.
+    const grounded =
+      orchestrated.toolUsed ||
+      !containsFigure(orchestrated.answer) ||
+      (sessionId !== undefined && onlyRestatesKnownFigures(sessionId, orchestrated.answer))
+    if (grounded) {
+      if (orchestrated.toolUsed) rememberFigures(orchestrated.sessionId, orchestrated.answer)
+      return reply(orchestrated.answer, 'none', 200, orchestrated.sessionId)
+    }
   }
 
   const fell = await fallback(question)

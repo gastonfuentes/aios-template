@@ -15,6 +15,8 @@ import { FLEET_TOOLS } from './fleet.js'
 import { FINANCE_TOOLS } from './finance.js'
 import { COMMERCIAL_TOOLS } from './commercial.js'
 import { RESOURCE_TOOLS } from './resources.js'
+import { OPERATION_TOOLS } from './operations.js'
+import { ACCOUNT_TOOLS } from './accounts.js'
 
 const ALL_TOOLS = [
   ...OVERVIEW_TOOLS,
@@ -22,6 +24,8 @@ const ALL_TOOLS = [
   ...FINANCE_TOOLS,
   ...COMMERCIAL_TOOLS,
   ...RESOURCE_TOOLS,
+  ...OPERATION_TOOLS,
+  ...ACCOUNT_TOOLS,
 ]
 
 /** The in-process read-only MCP server given to `query()`. */

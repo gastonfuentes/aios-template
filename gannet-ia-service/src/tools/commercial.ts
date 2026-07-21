@@ -37,26 +37,54 @@ const clientsRanking = tool(
 interface ProjectRow {
   readonly proyecto: string
   readonly cliente: string
+  readonly estado: string | null
   readonly monto_contrato_ars: string | number | null
   readonly avance_pct: string | number | null
-  readonly margen_real_pct: string | number | null
 }
+
+/** Sort key → PostgREST `order` clause. Fixed set; no user string is interpolated. */
+const PROJECT_ORDERS = {
+  monto: 'monto_contrato_ars.desc',
+  avance: 'avance_pct.desc',
+} as const
+
+const ORDER_LABEL = {
+  monto: 'monto de contrato',
+  avance: 'avance físico',
+} as const
 
 const projectsRanking = tool(
   'projects_ranking',
-  'Ranking de proyectos por monto de contrato, con el cliente, el avance de ejecución y el margen real. Usar para "cuál es el proyecto más grande", "proyectos de mayor monto", "avance de proyectos", "margen de proyectos".',
-  { top: z.number().int().min(1).max(30).optional() },
+  'Ranking de proyectos con cliente, estado, monto de contrato y avance físico. Ordenable por monto o por avance. Usar para "cuál es el proyecto más grande", "proyectos de mayor monto", "qué proyectos tienen más avance", "obras más avanzadas", "proyectos más adelantados", "avance de obra".',
+  {
+    top: z.number().int().min(1).max(30).optional(),
+    ordenar_por: z.enum(['monto', 'avance']).optional(),
+    /**
+     * Defaults to true when ordering by progress: a finished project sits at
+     * 100%, so "the most advanced projects" would otherwise return completed
+     * work — technically right and useless to someone asking what is close to
+     * delivery. Set false only when finished projects are explicitly wanted.
+     */
+    solo_en_curso: z.boolean().optional(),
+  },
   async (args): Promise<ToolResult> => {
     const limit = args.top ?? 8
+    const orderKey = args.ordenar_por ?? 'monto'
+    const onlyOngoing = args.solo_en_curso ?? orderKey === 'avance'
+    const filter = onlyOngoing ? '&estado=eq.en_curso' : ''
     const rows = await selectView<ProjectRow>(
       'gd_margen_por_proyecto',
-      `select=proyecto,cliente,monto_contrato_ars,avance_pct,margen_real_pct&order=monto_contrato_ars.desc&limit=${limit}`,
+      `select=proyecto,cliente,estado,monto_contrato_ars,avance_pct&order=${PROJECT_ORDERS[orderKey]}${filter}&limit=${limit}`,
     )
     if (rows.length === 0) return noData('el ranking de proyectos')
     const lines = rows.map(
-      (r, i) => `${i + 1}. ${r.proyecto} (${r.cliente}): contrato ${formatArsCompact(r.monto_contrato_ars)}, avance ${formatPercent(r.avance_pct, 0)}, margen real ${formatPercent(r.margen_real_pct)}`,
+      // Margin is deliberately absent: purchase-order amounts are out of scale
+      // with contract values, so margen_real_pct currently reads in the
+      // thousands of percent. Restore this column once that data is corrected.
+      (r, i) => `${i + 1}. ${r.proyecto} (${r.cliente}): avance ${formatPercent(r.avance_pct, 0)}, contrato ${formatArsCompact(r.monto_contrato_ars)}${onlyOngoing ? '' : ` — ${r.estado ?? 'sin estado'}`}`,
     )
-    return text(`Proyectos por monto de contrato (mayor primero):\n${lines.join('\n')}`)
+    const scope = onlyOngoing ? 'Proyectos en curso' : 'Proyectos'
+    return text(`${scope} por ${ORDER_LABEL[orderKey]} (mayor primero):\n${lines.join('\n')}`)
   },
 )
 

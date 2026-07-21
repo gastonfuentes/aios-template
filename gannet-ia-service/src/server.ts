@@ -14,12 +14,21 @@ import { HAS_OAUTH_TOKEN, HOST, PORT } from './config.js'
 import { orchestrate } from './orchestrator.js'
 import { ALL_TOOL_NAMES } from './tools/index.js'
 
-const QuestionSchema = z.object({ question: z.string().trim().min(1).max(500) })
+const QuestionSchema = z.object({
+  question: z.string().trim().min(1).max(500),
+  /**
+   * Optional SDK session to continue. Bounded and shape-checked like every other
+   * input: a caller-supplied session id reaches the SDK, so it is never trusted
+   * as free-form text.
+   */
+  sessionId: z.string().trim().uuid().optional(),
+})
 
 interface AskBody {
   readonly answer: string
   readonly toolUsed: boolean
   readonly toolNames: readonly string[]
+  readonly sessionId?: string
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -43,14 +52,17 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 
 async function handleAsk(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let question: string
+  let sessionId: string | undefined
   try {
-    question = QuestionSchema.parse(await readBody(req)).question
+    const parsed = QuestionSchema.parse(await readBody(req))
+    question = parsed.question
+    sessionId = parsed.sessionId
   } catch {
     sendJson(res, 400, { error: 'invalid question' })
     return
   }
   try {
-    const result = await orchestrate(question)
+    const result = await orchestrate(question, sessionId)
     const body: AskBody = result
     sendJson(res, 200, body)
   } catch (error) {

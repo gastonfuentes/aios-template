@@ -33,11 +33,14 @@ const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.GANNET_IA_TIMEOUT_MS ?? '1300
 export interface OrchestratedAnswer {
   readonly answer: string
   readonly toolUsed: boolean
+  /** SDK session for this turn; hand it back to continue the conversation. */
+  readonly sessionId?: string
 }
 
 interface RawResponse {
   readonly answer?: unknown
   readonly toolUsed?: unknown
+  readonly sessionId?: unknown
 }
 
 /**
@@ -45,14 +48,17 @@ interface RawResponse {
  * non-2xx, or malformed body — every one of which routes the caller to the
  * deterministic stage-1 fallback.
  */
-export async function askOrchestrator(question: string): Promise<OrchestratedAnswer | null> {
+export async function askOrchestrator(
+  question: string,
+  sessionId?: string,
+): Promise<OrchestratedAnswer | null> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ORCHESTRATOR_TIMEOUT_MS)
   try {
     const res = await fetch(ORCHESTRATOR_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify(sessionId === undefined ? { question } : { question, sessionId }),
       cache: 'no-store',
       signal: controller.signal,
     })
@@ -61,7 +67,10 @@ export async function askOrchestrator(question: string): Promise<OrchestratedAns
     if (typeof body.answer !== 'string' || typeof body.toolUsed !== 'boolean') return null
     const answer = body.answer.trim()
     if (answer.length === 0) return null
-    return { answer, toolUsed: body.toolUsed }
+    const session = typeof body.sessionId === 'string' && body.sessionId.length > 0
+      ? body.sessionId
+      : undefined
+    return { answer, toolUsed: body.toolUsed, ...(session !== undefined && { sessionId: session }) }
   } catch {
     return null
   } finally {

@@ -13,14 +13,40 @@
 
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { createRequire } from 'node:module'
 import { readEnvFile } from './env.js'
 
+const require = createRequire(import.meta.url)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+/**
+ * Ruta absoluta al binario glibc de Claude Code que trae el SDK.
+ *
+ * El resolver del SDK prueba primero el build musl; en este host glibc ese
+ * build no puede ejecutarse y `query()` falla con un "binary not found"
+ * engañoso. Fijar el glibc explícitamente es el fix determinista, el mismo que
+ * ya usa `gannet-ia-service/src/config.ts`. Se resuelve al import para que una
+ * instalación rota falle en el boot y no en el primer mensaje de Telegram.
+ */
+export const CLAUDE_BINARY_PATH: string = require.resolve(
+  '@anthropic-ai/claude-agent-sdk-linux-x64/claude',
+)
+
 // Build (`dist/config.js`) y dev (`src/config.ts` via tsx) están ambos a 2
 // niveles del repo root. `__dirname/../..` resuelve correctamente en los dos.
-export const PROJECT_ROOT = join(__dirname, '..', '..')
+const DEFAULT_PROJECT_ROOT = join(__dirname, '..', '..')
+
+/**
+ * Raíz de trabajo del agente. El SDK corre con `cwd: PROJECT_ROOT` y
+ * `permissionMode: 'bypassPermissions'`, así que este valor define exactamente
+ * qué puede tocar el agente desde Telegram.
+ *
+ * `AGENT_PROJECT_ROOT` permite apuntarlo fuera del repo. Sin la var el
+ * comportamiento es el histórico: la raíz del monorepo.
+ */
+export const PROJECT_ROOT =
+  readEnvFile(['AGENT_PROJECT_ROOT'])['AGENT_PROJECT_ROOT']?.trim() || DEFAULT_PROJECT_ROOT
 
 const AGENT_DIR = join(__dirname, '..')
 export const STORE_DIR = join(AGENT_DIR, 'store')
@@ -53,7 +79,27 @@ const phase6Env = readEnvFile([
   'ELEVENLABS_VOICE_ID',
 ])
 export const TELEGRAM_BOT_TOKEN = phase6Env['TELEGRAM_BOT_TOKEN'] ?? ''
-export const ALLOWED_CHAT_ID = phase6Env['ALLOWED_CHAT_ID'] ?? ''
+
+/**
+ * `ALLOWED_CHAT_ID` accepts a comma-separated list so more than one person can
+ * reach the daemon. A single value behaves exactly as before.
+ *
+ * Order matters: the first entry is the primary chat. Cron seeding and error
+ * alerts address that one, because those are pushes with no chat to reply to.
+ */
+export function parseAllowedChatIds(raw: string): readonly string[] {
+  return raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0)
+}
+
+export const ALLOWED_CHAT_IDS: readonly string[] = parseAllowedChatIds(
+  phase6Env['ALLOWED_CHAT_ID'] ?? '',
+)
+
+/** Primary chat — target for cron output and error alerts. */
+export const ALLOWED_CHAT_ID = ALLOWED_CHAT_IDS[0] ?? ''
 export const GROQ_API_KEY = phase6Env['GROQ_API_KEY'] ?? ''
 export const ELEVENLABS_API_KEY = phase6Env['ELEVENLABS_API_KEY'] ?? ''
 export const ELEVENLABS_VOICE_ID = phase6Env['ELEVENLABS_VOICE_ID'] ?? ''

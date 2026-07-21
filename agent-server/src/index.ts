@@ -23,7 +23,7 @@ import { homedir } from 'os'
 import type { Bot } from 'grammy'
 
 import { validateRequiredEnv, MissingEnvError } from './env.js'
-import { STORE_DIR, UPLOADS_DIR, MC_SERVER_PORT } from './config.js'
+import { STORE_DIR, UPLOADS_DIR, MC_SERVER_PORT, ALLOWED_CHAT_ID } from './config.js'
 import { initDatabase } from './db.js'
 import { prewarm } from './agent.js'
 import { startMCServer, stopMCServer } from './server.js'
@@ -173,10 +173,11 @@ async function main(): Promise<void> {
 
   // Cablear error alerts vía Telegram cuando el bot está vivo. Si bot=null el
   // ops-logger igual tira maybeAlert pero retorna no-op porque getBot() devuelve null.
-  const alertEnv = readEnvFile(['ALLOWED_CHAT_ID'])
+  // Alerts are a push with no chat to reply to, so they address the primary
+  // entry of the allowlist rather than the raw env value, which may be a list.
   configureErrorAlerts({
     botGetter: () => bot,
-    chatIdGetter: () => alertEnv['ALLOWED_CHAT_ID'] ?? '',
+    chatIdGetter: () => ALLOWED_CHAT_ID,
   })
 
   // 9. Cron scheduler (PRP-007). Seedea 2 jobs si no existen + arranca poller 60s.

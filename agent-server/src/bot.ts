@@ -23,7 +23,7 @@
 import { Bot, type Context, InputFile } from 'grammy'
 import {
   TELEGRAM_BOT_TOKEN,
-  ALLOWED_CHAT_ID,
+  ALLOWED_CHAT_IDS,
   TYPING_REFRESH_MS,
   MAX_MESSAGE_LENGTH,
 } from './config.js'
@@ -43,7 +43,7 @@ import { validateInput } from './security.js'
  * sigue sirviendo el HTTP server / chat MC normal.
  */
 export function isBotConfigured(): boolean {
-  return Boolean(TELEGRAM_BOT_TOKEN && ALLOWED_CHAT_ID)
+  return Boolean(TELEGRAM_BOT_TOKEN) && ALLOWED_CHAT_IDS.length > 0
 }
 
 // ─── Formatting ──────────────────────────────────────────────────────────────
@@ -128,8 +128,18 @@ export function splitMessage(text: string, limit = MAX_MESSAGE_LENGTH): string[]
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-function isAuthorised(chatId: number | string): boolean {
-  return String(chatId) === String(ALLOWED_CHAT_ID)
+export function isAuthorised(chatId: number | string): boolean {
+  const candidate = String(chatId)
+  // Empty allowlist authorises nobody; `isBotConfigured` already keeps the bot
+  // from starting in that case, so this is a second floor, not the only one.
+  const allowed = ALLOWED_CHAT_IDS.includes(candidate)
+  if (!allowed) {
+    // This is the front door of an agent that runs with full permissions. A
+    // rejected knock must leave a trace: silently dropping it hides both an
+    // intrusion attempt and the ordinary case of onboarding a new chat.
+    logger.warn({ chatId: candidate }, 'telegram: rejected unauthorised chat')
+  }
+  return allowed
 }
 
 // ─── Core message handler ────────────────────────────────────────────────────
@@ -216,7 +226,19 @@ export async function handleMessage(
     typingActive = false
     logger.error({ err, chatId }, 'handleMessage error')
     mcError(runId, String(err))
-    await ctx.reply(`Error: ${String(err)}`)
+    // The full cause goes to the journal, not to the chat. This bot is shown to
+    // prospects, and the shared subscription can surface rate-limit or session
+    // errors whose raw text reads as a broken product.
+    const raw = String(err)
+    const stale = raw.includes('No conversation found')
+    await ctx.reply(
+      stale
+        ? 'Se cerró la conversación anterior. Escribime de nuevo y arrancamos un hilo nuevo.'
+        : 'No pude completar la consulta en este momento. Probá de nuevo en un momento.',
+    )
+    // A dead session would fail identically on every later message; clearing it
+    // means the next one starts clean instead of looping on the same error.
+    if (stale) clearSession(chatId)
   }
 }
 

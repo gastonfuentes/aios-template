@@ -13,7 +13,7 @@
  */
 
 import { query, startup, type Query, type ModelInfo as SdkModelInfo } from '@anthropic-ai/claude-agent-sdk'
-import { PROJECT_ROOT, AGENT_TIMEOUT_MS } from '../config.js'
+import { PROJECT_ROOT, AGENT_TIMEOUT_MS, CLAUDE_BINARY_PATH } from '../config.js'
 import { logger } from '../logger.js'
 import { opsLogger } from '../ops-logger.js'
 import type {
@@ -69,6 +69,7 @@ export const claudeCodeSdkProvider: LLMProvider = {
         prompt: input.prompt,
         options: {
           cwd: PROJECT_ROOT,
+          pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH,
           ...(input.sessionId && { resume: input.sessionId }),
           settingSources: ['project', 'user'],
           hooks: {},
@@ -320,6 +321,7 @@ export const claudeCodeSdkProvider: LLMProvider = {
         prompt: input.prompt,
         options: {
           cwd: PROJECT_ROOT,
+          pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH,
           settingSources: ['project', 'user'],
           hooks: {},
           permissionMode: 'bypassPermissions',
@@ -389,6 +391,7 @@ export const claudeCodeSdkProvider: LLMProvider = {
         prompt: '/status',
         options: {
           cwd: PROJECT_ROOT,
+          pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH,
           ...(sessionId && { resume: sessionId }),
           settingSources: ['project', 'user'],
           permissionMode: 'bypassPermissions',
@@ -423,7 +426,9 @@ export const claudeCodeSdkProvider: LLMProvider = {
   async prewarm(): Promise<void> {
     try {
       if (typeof startup === 'function') {
-        await startup({ options: { cwd: PROJECT_ROOT } })
+        await startup({
+          options: { cwd: PROJECT_ROOT, pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH },
+        })
         sdkPrewarmed = true
         logger.info({ cwd: PROJECT_ROOT, provider: 'claude-code-sdk' }, 'SDK pre-warm complete')
       } else {
