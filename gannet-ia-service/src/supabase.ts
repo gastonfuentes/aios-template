@@ -37,10 +37,19 @@ export async function selectView<T>(view: string, params: string): Promise<T[]> 
       },
       signal: controller.signal,
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      // An empty array is indistinguishable from a legitimate no-rows answer, so
+      // a missing view, a broken filter or a revoked grant would look normal to
+      // the presenter and leave no trace. Log it: `journalctl -u gannet-ia`
+      // is the only place this can surface.
+      console.error(`[selectView] ${view} responded ${res.status}`)
+      return []
+    }
     const body: unknown = await res.json()
     return Array.isArray(body) ? (body as T[]) : []
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    console.error(`[selectView] ${view} failed: ${reason}`)
     return []
   } finally {
     clearTimeout(timeout)
