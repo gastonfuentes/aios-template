@@ -4,8 +4,8 @@ import { PWARegister } from '@/core/components/PWARegister'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Mission Control',
-  description: 'Mission Control personal del operador — agente Claude Code + skills Praxis + BI vivo.',
+  title: 'Gannet OS',
+  description: 'El Sistema Operativo para Empresas Proveedoras de la Minería.',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AIOS',
+    title: 'Gannet OS',
   },
 }
 

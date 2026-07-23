@@ -38,9 +38,9 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json()
   } catch {
-    payload = { title: 'AIOS', body: event.data.text() }
+    payload = { title: 'Gannet OS', body: event.data.text() }
   }
-  const title = payload.title ?? 'AIOS'
+  const title = payload.title ?? 'Gannet OS'
   const options = {
     body: payload.body ?? '',
     icon: payload.icon ?? '/icon-192.png',

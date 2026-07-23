@@ -1,6 +1,6 @@
 {
-  "name": "AIOS Template — Mission Control",
-  "short_name": "AIOS",
+  "name": "Gannet OS — Mission Control",
+  "short_name": "Gannet OS",
   "description": "Mission Control personal con agente Claude Code, listo en menos de 5 minutos.",
   "start_url": "/dashboard",
   "scope": "/",

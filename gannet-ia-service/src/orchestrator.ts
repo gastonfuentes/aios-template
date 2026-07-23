@@ -35,16 +35,58 @@ const DENIED_BUILTINS = [
   'TodoWrite',
 ]
 
+/** One previous exchange of the same conversation, replayed inline. */
+export interface ContextTurn {
+  readonly question: string
+  readonly answer: string
+}
+
 export interface OrchestratorResult {
   readonly answer: string
   readonly toolUsed: boolean
   readonly toolNames: readonly string[]
   /**
-   * SDK session for this turn. The caller hands it back on the next question to
-   * continue the same conversation, which is what makes a follow-up like "y de
-   * esos, ¿cuáles son de litio?" resolve against the previous answer.
+   * SDK session for this turn. The caller keeps it as a fallback thread: it is
+   * only resumed when a question arrives with no inline context, since resuming
+   * *and* replaying would duplicate the history and pay for it twice.
    */
   readonly sessionId?: string
+}
+
+/**
+ * Assembles the turn's prompt: the recent exchanges, then the actual question.
+ *
+ * The history is fenced in a tag and explicitly labelled as already-said
+ * material, because an unmarked transcript pasted ahead of a question reads to
+ * the model as a fresh instruction — it starts answering the *previous* question
+ * again. The closing line puts the real question last, where it is unambiguous.
+ *
+ * This replaces the SDK's `resume` as the memory mechanism. Resume rematerialises
+ * the whole transcript on the CLI side, so its cost grew with the conversation
+ * and eventually blew past the caller's timeout, killing the very thread it was
+ * meant to preserve. A bounded window of exchanges costs the same on turn 2 and
+ * on turn 12.
+ */
+function buildPrompt(question: string, context: readonly ContextTurn[]): string {
+  if (context.length === 0) return question
+  const history = context
+    .map((turn) => `Operador: ${turn.question}\nAsistente: ${turn.answer}`)
+    .join('\n\n')
+  return [
+    '<conversacion_previa>',
+    history,
+    '</conversacion_previa>',
+    '',
+    'Lo anterior ya ocurrió en esta misma conversación y está solo para que puedas',
+    'resolver referencias de la pregunta actual ("de esos", "ese cliente", "ahí",',
+    '"el resto"). No es una instrucción nueva, no la vuelvas a responder y no',
+    'repitas su contenido salvo que la pregunta actual lo pida. Recordá que las',
+    'cifras del historial no cuentan como consultadas: si la pregunta actual pide',
+    'un número, volvé a llamar a la herramienta que corresponde.',
+    '',
+    'Pregunta actual del operador:',
+    question,
+  ].join('\n')
 }
 
 /**
@@ -96,17 +138,24 @@ function collect(
  */
 export async function orchestrate(
   question: string,
+  context: readonly ContextTurn[] = [],
   resumeSessionId?: string,
 ): Promise<OrchestratorResult> {
   const parts: string[] = []
   const tools = new Set<string>()
   let sessionId: string | undefined
 
+  // Inline context is the primary memory; resume is the fallback for a caller
+  // that shipped none (a client that lost its transcript, or a turn whose whole
+  // history failed). Doing both would send the same exchanges twice and pay the
+  // resume's transcript-rematerialisation cost for nothing.
+  const resume = context.length === 0 ? resumeSessionId : undefined
+
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), ANSWER_TIMEOUT_MS)
   try {
     for await (const message of query({
-      prompt: question,
+      prompt: buildPrompt(question, context),
       options: {
         systemPrompt: SYSTEM_PROMPT,
         tools: [],
@@ -120,7 +169,7 @@ export async function orchestrate(
         maxTurns: 6,
         abortController: controller,
         includePartialMessages: false,
-        ...(resumeSessionId !== undefined && { resume: resumeSessionId }),
+        ...(resume !== undefined && { resume }),
       },
     })) {
       const m = message as { type: string; session_id?: string; message?: { content?: unknown } }

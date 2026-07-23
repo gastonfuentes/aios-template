@@ -28,7 +28,7 @@ export default async function LoginPage({
             className="text-title2"
             style={{ color: 'var(--label-primary)' }}
           >
-            AIOS · Mission Control
+            Gannet OS · Mission Control
           </p>
           <p
             className="mt-1 text-body"

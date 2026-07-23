@@ -258,7 +258,7 @@ export function createBot(): Bot {
       return
     }
     await ctx.reply(
-      'Hola, soy AIOS — tu copiloto.\n\n' +
+      'Hola, soy Gannet OS — tu copiloto.\n\n' +
       'Comandos:\n' +
       '/newchat — Empezar una conversación nueva\n' +
       '/voice — Estado de voz (STT/TTS)\n' +

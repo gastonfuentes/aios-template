@@ -18,7 +18,7 @@ export async function requestMagicLink(formData: FormData): Promise<{ error?: st
   const email = parsed.data
 
   if (!isEmailAllowed(email)) {
-    return { error: 'Este email no tiene acceso a AIOS.' }
+    return { error: 'Este email no tiene acceso a Gannet OS.' }
   }
 
   const supabase = await createClient()

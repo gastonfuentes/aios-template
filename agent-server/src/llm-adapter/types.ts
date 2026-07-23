@@ -114,6 +114,11 @@ export interface CompleteInput {
   prompt: string
   /** Override del modelo para este call. Default: getCurrentModel(). */
   model?: string
+  /**
+   * Session id a resumir, para que el turno recuerde los anteriores. Lo usa el
+   * bot de Telegram (una sesión por chat). Providers sin sesiones lo ignoran.
+   */
+  sessionId?: string
   /** AbortSignal externo. */
   signal?: AbortSignal
   /** Source canonical para ops log. */
@@ -124,6 +129,8 @@ export interface CompleteInput {
 
 export interface CompleteResult {
   text: string
+  /** Session id del turno, para encadenar el siguiente y preservar memoria. */
+  sessionId?: string
   usage?: {
     inputTokens: number
     outputTokens: number

@@ -14,6 +14,7 @@
 
 import { query, startup, type Query, type ModelInfo as SdkModelInfo } from '@anthropic-ai/claude-agent-sdk'
 import { PROJECT_ROOT, AGENT_TIMEOUT_MS, CLAUDE_BINARY_PATH } from '../config.js'
+import { gannetBridgeServer, GANNET_GROUNDING_APPEND } from '../gannet-bridge.js'
 import { logger } from '../logger.js'
 import { opsLogger } from '../ops-logger.js'
 import type {
@@ -72,6 +73,10 @@ export const claudeCodeSdkProvider: LLMProvider = {
           pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH,
           ...(input.sessionId && { resume: input.sessionId }),
           settingSources: ['project', 'user'],
+          // Grounding del demo: la herramienta de datos de la empresa + la regla
+          // de usarla siempre y no inventar. Sin esto el agente alucina negocio.
+          mcpServers: { gannet_datos: gannetBridgeServer },
+          systemPrompt: { type: 'preset', preset: 'claude_code', append: GANNET_GROUNDING_APPEND },
           hooks: {},
           permissionMode: 'bypassPermissions',
           abortController: ac,
@@ -313,6 +318,7 @@ export const claudeCodeSdkProvider: LLMProvider = {
     let inputTokens = 0
     let outputTokens = 0
     let costUsd: number | undefined
+    let newSessionId: string | undefined
     const source = input.source ?? 'system'
     const modelToUse = input.model ?? currentModelId
 
@@ -322,7 +328,13 @@ export const claudeCodeSdkProvider: LLMProvider = {
         options: {
           cwd: PROJECT_ROOT,
           pathToClaudeCodeExecutable: CLAUDE_BINARY_PATH,
+          // Resume de la sesión: sin esto cada turno arranca sin memoria (el bot
+          // de Telegram guarda una sesión por chat y la pasa acá).
+          ...(input.sessionId && { resume: input.sessionId }),
           settingSources: ['project', 'user'],
+          // Grounding del demo (mismo puente que en stream): Telegram entra por acá.
+          mcpServers: { gannet_datos: gannetBridgeServer },
+          systemPrompt: { type: 'preset', preset: 'claude_code', append: GANNET_GROUNDING_APPEND },
           hooks: {},
           permissionMode: 'bypassPermissions',
           abortController: ac,
@@ -333,6 +345,9 @@ export const claudeCodeSdkProvider: LLMProvider = {
 
       for await (const event of stream) {
         const e = event as Record<string, unknown>
+        if (e['type'] === 'system' && e['subtype'] === 'init' && typeof e['session_id'] === 'string') {
+          newSessionId = e['session_id'] as string
+        }
         if (e['type'] === 'result') {
           const raw = e['result']
           if (typeof raw === 'string') {
@@ -360,6 +375,7 @@ export const claudeCodeSdkProvider: LLMProvider = {
 
       return {
         text: resultText,
+        ...(newSessionId !== undefined ? { sessionId: newSessionId } : {}),
         usage: { inputTokens, outputTokens, ...(costUsd !== undefined ? { costUsd } : {}) },
         durationMs,
       }

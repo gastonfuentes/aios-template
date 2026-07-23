@@ -23,12 +23,21 @@ const ORCHESTRATOR_URL = process.env.GANNET_IA_URL ?? 'http://127.0.0.1:3131/ask
  * Hard ceiling for the orchestrated round-trip; the request falls back past it.
  *
  * Measured end-to-end latency for a tool + narration turn is ~9–11s (CLI spawn
- * plus two model round-trips), so an 8s cutoff would fall back on almost every
- * off-script question and strand stage 2. 13s comfortably fits a warm turn while
- * still bounding a hung request; the service's own internal budget (20s) is the
- * backstop. Overridable via `GANNET_IA_TIMEOUT_MS`.
+ * plus two model round-trips), and it no longer grows with the conversation now
+ * that history travels inline instead of through the SDK's resume. This budget
+ * sits *above* the service's own 16s so the service always times out first: its
+ * abort produces a 503 with a logged reason, while ours produces an opaque
+ * `AbortError` that says nothing about what went wrong. Ours is the backstop for
+ * a socket that hangs without the service noticing. Overridable via
+ * `GANNET_IA_TIMEOUT_MS`.
  */
-const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.GANNET_IA_TIMEOUT_MS ?? '13000')
+const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.GANNET_IA_TIMEOUT_MS ?? '18000')
+
+/** One previous exchange, replayed inline so a follow-up has a referent. */
+export interface ContextTurn {
+  readonly question: string
+  readonly answer: string
+}
 
 export interface OrchestratedAnswer {
   readonly answer: string
@@ -44,12 +53,14 @@ interface RawResponse {
 }
 
 /**
- * Asks the orchestrator one question. Returns `null` on any failure, timeout,
+ * Asks the orchestrator one question, carrying the previous exchanges inline so
+ * a follow-up resolves against them. Returns `null` on any failure, timeout,
  * non-2xx, or malformed body — every one of which routes the caller to the
  * deterministic stage-1 fallback.
  */
 export async function askOrchestrator(
   question: string,
+  context: readonly ContextTurn[],
   sessionId?: string,
 ): Promise<OrchestratedAnswer | null> {
   const controller = new AbortController()
@@ -58,7 +69,11 @@ export async function askOrchestrator(
     const res = await fetch(ORCHESTRATOR_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sessionId === undefined ? { question } : { question, sessionId }),
+      body: JSON.stringify({
+        question,
+        ...(context.length > 0 && { context }),
+        ...(sessionId !== undefined && { sessionId }),
+      }),
       cache: 'no-store',
       signal: controller.signal,
     })
@@ -79,12 +94,30 @@ export async function askOrchestrator(
 }
 
 /**
+ * Nouns whose counts are claims about the business, not incidental numbers.
+ *
+ * The list has to track the vocabulary the demo actually reports on. It used to
+ * cover only formatted units, so "5 clientes" stated without a tool behind it
+ * read as figure-free and skipped the guard entirely: a single digit never
+ * reaches the `\d{2,}` branch, and `clientes` was not a listed noun.
+ */
+const FIGURE_NOUNS =
+  'mil|M|B|%|d[íi]as?|facturas?|veh[íi]culos?|empleados?|unidades?' +
+  '|clientes?|faenas?|proyectos?|contactos?|[óo]rdenes?|OT\\b|provincias?' +
+  '|art[íi]culos?|contratos?|cotizaciones?|documentos?|equipos?|obras?' +
+  '|dep[óo]sitos?|servicios?|personas?|sucursales?|repuestos?'
+
+/** Built once; no `g` flag, so `test` carries no state between calls. */
+const FIGURE_PATTERN = new RegExp(
+  `\\$\\s?\\d|\\d[\\d.,]*\\s*(?:${FIGURE_NOUNS})|\\d{2,}`,
+  'i',
+)
+
+/**
  * True when the text states a figure — currency, a grouped number, a percentage,
- * or a day/quantity count. Used by the number-guard: such a claim is only
- * trustworthy if a tool was actually called to produce it.
+ * or a count of any noun this demo reports on. Used by the number-guard: such a
+ * claim is only trustworthy if a tool was actually called to produce it.
  */
 export function containsFigure(text: string): boolean {
-  return /\$\s?\d|\d[\d.,]*\s*(?:mil|M|B|%|d[íi]as?|facturas?|veh[íi]culos?|empleados?|unidades?)|\d{2,}/i.test(
-    text,
-  )
+  return FIGURE_PATTERN.test(text)
 }

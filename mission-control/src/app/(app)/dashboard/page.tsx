@@ -13,8 +13,8 @@ export default function DashboardPage() {
         className="text-callout normal-case"
         style={{ color: 'var(--label-tertiary)' }}
       >
-        Aqui vivira el panel de mando — metricas, atajos, lo que pase en AIOS
-        de un vistazo.
+        Aqui vivira el panel de mando — metricas, atajos, lo que pase en
+        Gannet OS de un vistazo.
       </p>
     </div>
   )

@@ -40,8 +40,18 @@ export const CLAUDE_BINARY_PATH: string = require.resolve(
   '@anthropic-ai/claude-agent-sdk-linux-x64/claude',
 )
 
-/** Overall budget for one orchestrated answer, including tool round-trips. */
-export const ANSWER_TIMEOUT_MS = 20_000
+/**
+ * Overall budget for one orchestrated answer, including tool round-trips.
+ *
+ * Innermost of the four nested budgets (this 16s < mission-control's 18s call
+ * < its 28s browser ceiling, leaving room for the 8s deterministic fallback in
+ * between). Being the tightest is deliberate: when a turn is genuinely stuck,
+ * this timer fires first and the failure leaves here as a logged 503 instead of
+ * reaching the caller as an anonymous abort. A warm tool + narration turn
+ * measures ~9–11s and no longer grows with the conversation, since history now
+ * arrives inline rather than through the SDK's resume.
+ */
+export const ANSWER_TIMEOUT_MS = 16_000
 
 /** Per-tool database round-trip budget. Kept well under the answer budget. */
 export const TOOL_TIMEOUT_MS = 6_000

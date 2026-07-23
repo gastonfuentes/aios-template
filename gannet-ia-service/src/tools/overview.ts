@@ -6,9 +6,10 @@
 
 import { tool } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod'
-import { selectOne, selectView } from '../supabase.js'
-import { formatArsCompact, formatInteger, formatPercent, toNumber } from '../format.js'
-import { noData, text, type ToolResult } from './helpers.js'
+import { selectOne, selectPage, selectView } from '../supabase.js'
+import { formatArsCompact, formatDate, formatInteger, formatPercent, toNumber } from '../format.js'
+import { WORK_ORDER_PRIORITY, WORK_ORDER_STATE, label } from '../labels.js'
+import { listedNote, noData, partialWarning, text, type ToolResult } from './helpers.js'
 
 interface KpiRow {
   readonly facturacion_mes_ars: string | number | null
@@ -79,7 +80,7 @@ function aggregateByEstado(rows: readonly OtCargaRow[]): Map<string, { total: nu
 function renderWorkOrders(k: KpiRow, byEstado: Map<string, { total: number; abiertas: number; atrasadas: number }>): string {
   const lines = [...byEstado.entries()]
     .sort((a, b) => b[1].total - a[1].total)
-    .map(([estado, v]) => `- ${estado.replace(/_/g, ' ')}: ${formatInteger(v.total)}${v.atrasadas > 0 ? ` (atrasadas: ${formatInteger(v.atrasadas)})` : ''}`)
+    .map(([estado, v]) => `- ${label(WORK_ORDER_STATE, estado)}: ${formatInteger(v.total)}${v.atrasadas > 0 ? ` (atrasadas: ${formatInteger(v.atrasadas)})` : ''}`)
   const header = `Órdenes de trabajo: ${formatInteger(k.ot_abiertas)} abiertas, de las cuales ${formatInteger(k.ot_criticas)} críticas y ${formatInteger(k.ot_en_ejecucion)} en ejecución. Completadas este mes: ${formatInteger(k.ot_completadas_mes)}.`
   return `${header}\n\nDistribución por estado:\n${lines.join('\n')}`
 }
@@ -90,12 +91,86 @@ const workOrders = tool(
   {},
   async (): Promise<ToolResult> => {
     const k = await selectOne<KpiRow>('gd_kpi_ejecutivo', KPI_SELECT)
-    const rows = await selectView<OtCargaRow>(
+    // The per-estado breakdown sums `cantidad` over these rows; a cut page would
+    // drop whole states from a distribution presented as complete.
+    const page = await selectPage<OtCargaRow>(
       'gd_ot_carga_operativa',
       'select=estado,cantidad,atrasadas,esta_abierta&limit=200',
     )
-    if (k === null || rows.length === 0) return noData('las órdenes de trabajo')
-    return text(renderWorkOrders(k, aggregateByEstado(rows)))
+    if (k === null || page.rows.length === 0) return noData('las órdenes de trabajo')
+    const body = renderWorkOrders(k, aggregateByEstado(page.rows))
+    return text(`${body}${partialWarning(page, 'grupos de OT')}`)
+  },
+)
+
+// --- Work-order detail -------------------------------------------------------
+
+interface WorkOrderRow {
+  readonly ot_numero: string | null
+  readonly titulo: string | null
+  readonly cliente: string | null
+  readonly responsable: string | null
+  readonly vehiculo_dominio: string | null
+  readonly prioridad: string | null
+  readonly estado: string | null
+  readonly fecha_programada: string | null
+  readonly esta_atrasada: boolean | null
+}
+
+/** Work orders the query reads; the true total always comes from the row count. */
+const WO_QUERY_CAP = 60
+
+/** Work orders spelled out one by one; the rest are covered by the stated total. */
+const WO_LIST_CAP = 15
+
+const WO_STATES = ['borrador', 'programada', 'en_ejecucion', 'pausada', 'completada', 'cancelada'] as const
+const WO_PRIORITIES = ['baja', 'media', 'alta', 'critica'] as const
+
+const workOrdersList = tool(
+  'work_orders_list',
+  'Detalle de órdenes de trabajo individuales: número, título, cliente, responsable, prioridad, estado, fecha programada y si están atrasadas. Filtros por estado, prioridad, solo abiertas y solo atrasadas. Usar para "listame las OT críticas abiertas", "qué OT están atrasadas", "detalle de las órdenes en ejecución", "qué trabajos tiene programados tal responsable". Para el conteo agregado por estado usar work_orders.',
+  {
+    estado: z.enum(WO_STATES).optional(),
+    prioridad: z.enum(WO_PRIORITIES).optional(),
+    solo_abiertas: z.boolean().optional(),
+    solo_atrasadas: z.boolean().optional(),
+  },
+  async (args): Promise<ToolResult> => {
+    const filters: string[] = []
+    if (args.estado !== undefined) filters.push(`estado=eq.${args.estado}`)
+    if (args.prioridad !== undefined) filters.push(`prioridad=eq.${args.prioridad}`)
+    if (args.solo_abiertas === true) filters.push('esta_abierta=is.true')
+    if (args.solo_atrasadas === true) filters.push('esta_atrasada=is.true')
+    const filterQuery = filters.length > 0 ? `&${filters.join('&')}` : ''
+
+    const page = await selectPage<WorkOrderRow>(
+      'gd_ot_operativas',
+      `select=ot_numero,titulo,cliente,responsable,vehiculo_dominio,prioridad,estado,fecha_programada,esta_atrasada&order=fecha_programada.desc${filterQuery}&limit=${WO_QUERY_CAP}`,
+    )
+    const rows = page.rows
+
+    const scope = [
+      args.prioridad !== undefined ? `de prioridad ${label(WORK_ORDER_PRIORITY, args.prioridad).toLowerCase()}` : null,
+      args.estado !== undefined ? `en estado "${label(WORK_ORDER_STATE, args.estado)}"` : null,
+      args.solo_abiertas === true ? 'abiertas' : null,
+      args.solo_atrasadas === true ? 'atrasadas' : null,
+    ]
+      .filter(Boolean)
+      .join(' y ')
+    const what = scope ? `órdenes de trabajo ${scope}` : 'órdenes de trabajo'
+
+    if (rows.length === 0) return text(`No hay ${what}.`)
+
+    const lines = rows.slice(0, WO_LIST_CAP).map((r) => {
+      const atrasada = r.esta_atrasada === true ? ' (atrasada)' : ''
+      const veh = r.vehiculo_dominio ? ` · ${r.vehiculo_dominio}` : ''
+      const resp = r.responsable ? ` · resp. ${r.responsable}` : ''
+      return `- ${r.ot_numero ?? 'sin número'} — ${r.titulo ?? 'sin título'} · ${r.cliente ?? 'sin cliente'} · ${label(WORK_ORDER_STATE, r.estado)} · prioridad ${label(WORK_ORDER_PRIORITY, r.prioridad)} · programada ${formatDate(r.fecha_programada)}${atrasada}${veh}${resp}`
+    })
+    const total = page.total ?? rows.length
+    const header = `${what.charAt(0).toUpperCase()}${what.slice(1)}: ${formatInteger(total)} en total, de la más reciente a la más antigua.`
+    const note = listedNote(lines.length, total, 'órdenes de trabajo')
+    return text(`${header}\n\n${lines.join('\n')}${note}`)
   },
 )
 
@@ -132,7 +207,7 @@ interface BillingRow {
 const billingMonthly = tool(
   'billing_monthly',
   'Curva de facturación mensual: monto emitido y cobrado por mes, marcando el mes en curso como parcial. Usar para "facturación de este mes", "cómo viene la facturación", "evolución mensual", "cuánto cobramos".',
-  { months: z.number().int().min(1).max(12).optional() },
+  { months: z.number().int().min(1).max(18).optional() },
   async (args): Promise<ToolResult> => {
     const limit = args.months ?? 6
     const rows = await selectView<BillingRow>(
@@ -147,4 +222,4 @@ const billingMonthly = tool(
   },
 )
 
-export const OVERVIEW_TOOLS = [overview, workOrders, revenueByService, billingMonthly]
+export const OVERVIEW_TOOLS = [overview, workOrders, workOrdersList, revenueByService, billingMonthly]

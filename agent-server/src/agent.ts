@@ -103,13 +103,15 @@ export async function runAgent(
       prompt: message,
       source,
       timeoutMs: effectiveTimeout,
+      ...(sessionId !== undefined ? { sessionId } : {}),
     })
+    // Encadenar la sesión: preferí la que devuelve el provider (el turno real que
+    // corrió); si no vino, echoá la de entrada. Sin esto el bot de Telegram no
+    // avanza la sesión y cada mensaje pierde la memoria del anterior.
+    const nextSessionId = result.sessionId ?? sessionId
     return {
       text: result.text,
-      // sessionId/slashCommands/isCompact/tokensBefore/tokensAfter/terminalReason no se
-      // exponen por el adapter.complete() — el caller que necesite esa info usa el stream
-      // y agrega los eventos. Para callers backward-compat (Telegram bot, etc.) basta `text`.
-      ...(sessionId !== undefined ? { newSessionId: sessionId } : {}),
+      ...(nextSessionId !== undefined ? { newSessionId: nextSessionId } : {}),
       isCompact: false,
     }
   } finally {

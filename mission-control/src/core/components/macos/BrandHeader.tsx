@@ -1,7 +1,7 @@
 /**
- * BrandHeader — texto "AIOS" gradient animado en el top del Sidebar.
+ * BrandHeader — texto "GANNET OS" gradient animado en el top del Sidebar.
  *
- * Iter 2026-05-15: padding asimétrico para centrar el texto "AIOS" en el
+ * Iter 2026-05-15: padding asimétrico para centrar el texto de marca en el
  * espacio LIBRE del sidebar (entre el cluster de traffic lights a la
  * izquierda y el borde derecho del sidebar), NO en todo el ancho del
  * sidebar como antes.
@@ -11,8 +11,8 @@
  *   - Cluster traffic lights: 3 × 12px + 2 × 8px gap = 52px wide, montado
  *     absolute en `left-3 top-4` (12px desde left edge del sidebar) → ocupa
  *     x: 12-64.
- *   - Espacio libre para AIOS: x: 64-206 (width 142px).
- *   - Target center del AIOS: (64 + 206) / 2 = 135.
+ *   - Espacio libre para la marca: x: 64-206 (width 142px).
+ *   - Target center de la marca: (64 + 206) / 2 = 135.
  *
  * Implementación: `padding-left: 64px` reserva exactamente la cluster zone,
  * `padding-right: 0` deja el inner area extenderse hasta el borde derecho.
@@ -37,7 +37,7 @@ export function BrandHeader() {
           letterSpacing: '0.04em',
         }}
       >
-        AIOS
+        GANNET OS
       </h1>
     </div>
   )

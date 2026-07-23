@@ -125,7 +125,7 @@ async function sendToAll(payload: Record<string, unknown>): Promise<EmitResult> 
  */
 export async function sendOpenUrlPush(url: string): Promise<EmitResult> {
   return sendToAll({
-    title: 'AIOS',
+    title: 'Gannet OS',
     body: 'Tienes un dibujo nuevo listo',
     url,
     tag: 'open-url',

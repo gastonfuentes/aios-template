@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Send, Sparkles, RotateCcw } from 'lucide-react'
 import { ModuleShell } from '@/features/gannet/components/ModuleShell'
 import type { AskResponse } from '@/app/api/gannet/ask/route'
-import { useIaStore } from '@/features/gannet-ia/store'
+import { recentContext, useIaStore } from '@/features/gannet-ia/store'
 
 /** The three curated questions, offered as tappable chips. */
 const EXAMPLES: readonly string[] = [
@@ -31,17 +31,20 @@ const GENERIC_ERROR = 'No se pudo consultar en este momento.'
 const TIMEOUT_ERROR = 'La consulta tardó demasiado. Probá de nuevo.'
 
 /**
- * Client-side ceiling for the whole round-trip. The route's own budget is 20s
- * (orchestrator) plus an 8s deterministic fallback, so 25s lets the server win
- * the race whenever it can still answer and only fires when the connection
- * itself has stalled. Without it a stalled mobile connection never rejects and
- * the waiting state stays up forever.
+ * Client-side ceiling for the whole round-trip, and the outermost of four
+ * nested budgets: service 16s < route→service 18s, plus the route's 8s
+ * deterministic fallback = 26s worst case, under this 28s. Every layer strictly
+ * outlasts what it waits on, so the innermost timer always fires first and the
+ * failure arrives typed and logged instead of as an opaque abort. This one only
+ * fires when the connection itself has stalled; without it a stalled mobile
+ * connection never rejects and the waiting state stays up forever.
  */
-const REQUEST_TIMEOUT_MS = 25_000
+const REQUEST_TIMEOUT_MS = 28_000
 
 export function IaModule() {
   const [question, setQuestion] = useState('')
   const turns = useIaStore((s) => s.turns)
+  const conversationId = useIaStore((s) => s.conversationId)
   const sessionId = useIaStore((s) => s.sessionId)
   const loading = useIaStore((s) => s.loading)
   const startTurn = useIaStore((s) => s.startTurn)
@@ -60,6 +63,10 @@ export function IaModule() {
     const trimmed = text.trim()
     if (trimmed.length === 0 || loading) return
 
+    // Read before starting the turn: `turns` is this render's value, so it holds
+    // the exchanges that precede the question being asked, never the empty one
+    // just pushed.
+    const context = recentContext(turns)
     const turnId = startTurn(trimmed)
     setQuestion('')
     const controller = new AbortController()
@@ -68,9 +75,12 @@ export function IaModule() {
       const res = await fetch('/api/gannet/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          sessionId === undefined ? { question: trimmed } : { question: trimmed, sessionId },
-        ),
+        body: JSON.stringify({
+          question: trimmed,
+          conversationId,
+          ...(context.length > 0 && { context }),
+          ...(sessionId !== undefined && { sessionId }),
+        }),
         cache: 'no-store',
         signal: controller.signal,
       })
@@ -87,7 +97,7 @@ export function IaModule() {
       clearTimeout(timer)
     }
     // `loading` is read to guard re-entry; the store setters are stable.
-  }, [loading, sessionId, startTurn, resolveTurn, failTurn])
+  }, [loading, turns, conversationId, sessionId, startTurn, resolveTurn, failTurn])
 
   const onSubmit = useCallback(
     (event: React.FormEvent) => {

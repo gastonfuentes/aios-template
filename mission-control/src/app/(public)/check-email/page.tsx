@@ -20,7 +20,7 @@ export default function CheckEmailPage() {
           className="mt-2 text-body"
           style={{ color: 'var(--label-secondary)' }}
         >
-          Te enviamos un link. Abrelo en este mismo dispositivo para entrar a AIOS.
+          Te enviamos un link. Abrelo en este mismo dispositivo para entrar a Gannet OS.
         </p>
         <Link
           href="/login"
